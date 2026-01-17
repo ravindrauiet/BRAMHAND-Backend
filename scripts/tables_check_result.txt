@@ -1,0 +1,17 @@
+Database: video_streaming_db
+Tables found (15):
+- creator_profiles
+- music_genres
+- notifications
+- otps
+- playlist_songs
+- playlists
+- song_likes
+- songs
+- user_preferences
+- users
+- video_categories
+- video_genres
+- video_likes
+- video_views
+- videos

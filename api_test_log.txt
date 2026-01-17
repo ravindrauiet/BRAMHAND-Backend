@@ -1,0 +1,6 @@
+Testing API Endpoints...
+Songs (Trending): Status 200, Count: 12
+  Sample: Mithila Beats Vol. 2
+Playlists: Status 200, Count: 4
+Genres: Status 200, Count: 73
+Top Creators: Status 200, Count: 9

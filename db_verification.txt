@@ -1,0 +1,509 @@
+Verifying DB Content...
+--- SONGS ---
+[
+  {
+    "id": 1,
+    "title": "Maithili Classical",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 2,
+    "title": "Morning Devotions",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 3,
+    "title": "Village Beats",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 4,
+    "title": "Bhojpuri Dhamaka",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 5,
+    "title": "Classical Evening",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 6,
+    "title": "Rhythms of Bihar",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 7,
+    "title": "Soulful Chants",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 8,
+    "title": "Modern Beats",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 9,
+    "title": "Patna Grooves",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 10,
+    "title": "Ganga Aarti",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 11,
+    "title": "Romantic Ballad",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 12,
+    "title": "High Energy",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 13,
+    "title": "Instrumental Vibes",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 14,
+    "title": "Wedding Songs",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 15,
+    "title": "Sad Songs",
+    "is_trending": 0,
+    "is_active": 1
+  },
+  {
+    "id": 16,
+    "title": "Mithila Beats Vol. 2",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 17,
+    "title": "Sita's Song",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 18,
+    "title": "Rivers of Tirhut",
+    "is_trending": 1,
+    "is_active": 1
+  },
+  {
+    "id": 19,
+    "title": "Mithila Ke Beti",
+    "is_trending": 1,
+    "is_active": 1
+  }
+]
+--- PLAYLISTS ---
+[
+  {
+    "id": 1,
+    "name": "Top 50 Mithila Folk",
+    "is_public": 1
+  },
+  {
+    "id": 2,
+    "name": "Wedding Special",
+    "is_public": 1
+  },
+  {
+    "id": 3,
+    "name": "Devotional Morning",
+    "is_public": 1
+  },
+  {
+    "id": 4,
+    "name": "Romantic Evenings",
+    "is_public": 1
+  }
+]
+--- GENRES ---
+[
+  {
+    "id": 1,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 2,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 3,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 4,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 5,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 6,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 7,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 8,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 9,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 10,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 11,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 12,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 13,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 14,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 15,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 16,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 17,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 18,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 19,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 20,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 21,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 22,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 23,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 24,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 25,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 26,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 27,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 28,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 29,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 30,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 31,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 32,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 33,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 34,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 35,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 36,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 37,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 38,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 39,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 40,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 41,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 42,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 43,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 44,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 45,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 46,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 47,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 48,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 49,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 50,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 51,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 52,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 53,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 54,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 55,
+    "name": "Maithili Folk",
+    "is_active": 1
+  },
+  {
+    "id": 56,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 57,
+    "name": "Classic",
+    "is_active": 1
+  },
+  {
+    "id": 58,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 59,
+    "name": "Bhojpuri Hits",
+    "is_active": 1
+  },
+  {
+    "id": 60,
+    "name": "Folk",
+    "is_active": 1
+  },
+  {
+    "id": 61,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 62,
+    "name": "Classical",
+    "is_active": 1
+  },
+  {
+    "id": 63,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 64,
+    "name": "Contemporary",
+    "is_active": 1
+  },
+  {
+    "id": 65,
+    "name": "Modern Folk",
+    "is_active": 1
+  },
+  {
+    "id": 66,
+    "name": "Unknown",
+    "is_active": 1
+  },
+  {
+    "id": 67,
+    "name": "Folk",
+    "is_active": 1
+  },
+  {
+    "id": 68,
+    "name": "Pop",
+    "is_active": 1
+  },
+  {
+    "id": 69,
+    "name": "Classical",
+    "is_active": 1
+  },
+  {
+    "id": 70,
+    "name": "Devotional",
+    "is_active": 1
+  },
+  {
+    "id": 71,
+    "name": "Contemporary",
+    "is_active": 1
+  },
+  {
+    "id": 72,
+    "name": "Modern Folk",
+    "is_active": 1
+  },
+  {
+    "id": 73,
+    "name": "Unknown",
+    "is_active": 1
+  }
+]

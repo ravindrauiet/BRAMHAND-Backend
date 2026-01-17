@@ -1,0 +1,47 @@
+=== Database Verification Report ===
+Connecting to database: video_streaming_db
+Connected successfully.
+
+--- Checking Table Structure for "songs" ---
+Has 'lyrics' column: true
+Columns found: id, title, artist, album, genre_id, audio_url, cover_image_url, duration, file_size, plays_count, likes_count, is_trending, is_featured, is_active, language, release_date, created_at, updated_at, lyrics
+
+--- Checking Songs Data ---
+Total songs found: 5
+
+Song ID: 36
+Title: Mithila Beats Vol. 2
+Audio URL: https://cdn.pixabay.com/audio/2024/11/06/audio_3cf9ec0d6c.mp3
+Duration: 180
+Has Lyrics: true (Length: 223)
+Sample Lyrics: मिथिला के धुन में झूमे सब जन गाओ गीत मिथिला के नाच...
+
+Song ID: 37
+Title: Sita's Song
+Audio URL: https://cdn.pixabay.com/audio/2024/09/26/audio_c91b23e6e6.mp3
+Duration: 252
+Has Lyrics: true (Length: 181)
+Sample Lyrics: सीता माता की महिमा अपार जनकपुर की राजकुमारी राम की...
+
+Song ID: 38
+Title: Rivers of Tirhut
+Audio URL: https://cdn.pixabay.com/audio/2024/10/13/audio_b5c02dc5dc.mp3
+Duration: 198
+Has Lyrics: true (Length: 207)
+Sample Lyrics: तिरहुत की नदियाँ बहती रहें कोसी, कमला, बागमती गंगा...
+
+Song ID: 39
+Title: Mithila Ke Beti
+Audio URL: https://cdn.pixabay.com/audio/2024/11/15/audio_ad56f2e631.mp3
+Duration: 280
+Has Lyrics: true (Length: 194)
+Sample Lyrics: मिथिला के बेटी हम सब गौरव है हमारा अपना संस्कार और...
+
+Song ID: 40
+Title: Ganga Maiya
+Audio URL: https://cdn.pixabay.com/audio/2024/09/12/audio_6cd6e0b4c3.mp3
+Duration: 245
+Has Lyrics: true (Length: 177)
+Sample Lyrics: गंगा मैया की जय हो पावन धारा में नहाओ पाप धुल जाएं...
+
+SUCCESS: Database seems to correspond to expectations if songs are present.

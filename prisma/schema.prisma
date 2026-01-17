@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum VideoType {
+  VIDEO
+  REEL
+}
+
+enum ContentRating {
+  U
+  UA
+  A
+  S
+  UA_13  @map("U/A 13+")
+  UA_16  @map("U/A 16+")
+  PG
+  PG_13  @map("PG-13")
+}
+
+// Users Table
+model User {
+  id              Int       @id @default(autoincrement())
+  mobileNumber    String?   @unique @map("mobile_number")
+  email           String?   @unique @db.VarChar(255)
+  passwordHash    String?   @map("password_hash") @db.VarChar(255)
+  fullName        String    @map("full_name")
+  profileImage    String?   @map("profile_image") @db.VarChar(512)
+  fcmToken        String?   @map("fcm_token")
+  isCreator       Boolean   @default(false) @map("is_creator")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  creatorProfile  CreatorProfile?
+  preferences     UserPreference?
+  playlists       Playlist[]
+  notifications   Notification[]
+  
+  // Interactions
+  videoLikes      VideoLike[]
+  videoViews      VideoView[]
+  songLikes       SongLike[]
+  videos          Video[] // Uploaded videos
+  comments        Comment[]
+  
+  followers       Follows[] @relation("following")
+  following       Follows[] @relation("follower")
+
+  @@map("users")
+}
+
+// User Preferences
+model UserPreference {
+  id                  Int     @id @default(autoincrement())
+  userId              Int     @unique @map("user_id")
+  contentLanguage     String?  @default("Hindi") @map("content_language")
+  appLanguage         String?  @default("English") @map("app_language")
+  notificationEnabled Boolean? @default(true) @map("notification_enabled")
+  autoPlay            Boolean? @default(true) @map("auto_play")
+  videoQuality        String?  @default("Auto") @map("video_quality")
+
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// OTPs
+model Otp {
+  id            Int      @id @default(autoincrement())
+  mobileOrEmail String   @map("mobile_or_email")
+  otp           String
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("otps")
+}
+
+// Creator Profiles
+model CreatorProfile {
+  id                     Int      @id @default(autoincrement())
+  userId                 Int      @unique @map("user_id")
+  popularName            String   @map("popular_name")
+  
+  panCard                String?  @map("pan_card")
+  bankName               String?  @map("bank_name")
+  accountNumber          String?  @map("account_number")
+  ifscCode               String?  @map("ifsc_code")
+  accountHolderName      String?  @map("account_holder_name")
+  upiId                  String?  @map("upi_id")
+
+  monetizationPercentage Decimal  @default(0.00) @map("monetization_percentage") @db.Decimal(5, 2)
+  totalEarnings          Decimal  @default(0.00) @map("total_earnings") @db.Decimal(10, 2)
+  isMonetizationEnabled  Boolean  @default(false) @map("is_monetization_enabled")
+  
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("creator_profiles")
+}
+
+// Video Categories
+model VideoCategory {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nameHindi String?  @map("name_hindi")
+  icon      String?
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  videos    Video[]
+
+  @@map("video_categories")
+}
+
+// Video Genres
+model VideoGenre {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nameHindi String?  @map("name_hindi")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  videos    Video[]
+
+  @@map("video_genres")
+}
+
+// Videos
+model Video {
+  id            Int           @id @default(autoincrement())
+  type          VideoType     @default(VIDEO)
+  creatorId     Int           @map("creator_id")
+  categoryId    Int           @map("category_id")
+  genreId       Int?          @map("genre_id")
+  seriesId      Int?          @map("series_id")
+  
+  title         String   @db.VarChar(255)
+  description   String?       @db.Text
+  videoUrl      String        @map("video_url") @db.VarChar(512)
+  thumbnailUrl  String?       @map("thumbnail_url") @db.VarChar(512)
+  
+  duration      Int?
+  fileSize      BigInt?       @map("file_size")
+  
+  viewsCount    Int           @default(0) @map("views_count")
+  likesCount    Int           @default(0) @map("likes_count")
+  commentsCount Int           @default(0) @map("comments_count")
+  sharesCount   Int           @default(0) @map("shares_count")
+  
+  isTrending    Boolean       @default(false) @map("is_trending")
+  isFeatured    Boolean       @default(false) @map("is_featured")
+  isActive      Boolean       @default(true) @map("is_active")
+  
+  language      String        @default("Hindi")
+  contentRating ContentRating @default(U) @map("content_rating")
+  
+  uploadDate    DateTime      @default(now()) @map("upload_date")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  creator       User          @relation(fields: [creatorId], references: [id])
+  category      VideoCategory @relation(fields: [categoryId], references: [id])
+  genre         VideoGenre?   @relation(fields: [genreId], references: [id])
+  
+  likes         VideoLike[]
+  views         VideoView[]
+  comments      Comment[]
+
+  @@map("videos")
+}
+
+// Music Genres
+model MusicGenre {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nameHindi String?  @map("name_hindi")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  songs     Song[]
+
+  @@map("music_genres")
+}
+
+// Songs
+model Song {
+  id            Int      @id @default(autoincrement())
+  title         String   @db.VarChar(255)
+  artist        String   @db.VarChar(255)
+  album         String?
+  genreId       Int      @map("genre_id")
+  
+  audioUrl      String   @map("audio_url") @db.VarChar(512)
+  coverImageUrl String?  @map("cover_image_url") @db.VarChar(512)
+  lyrics        String?  @db.Text
+  
+  duration      Int?
+  fileSize      BigInt?  @map("file_size")
+  
+  playsCount    Int      @default(0) @map("plays_count")
+  likesCount    Int      @default(0) @map("likes_count")
+  
+  isTrending    Boolean  @default(false) @map("is_trending")
+  isFeatured    Boolean  @default(false) @map("is_featured")
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  language      String        @default("Hindi")
+  releaseDate   DateTime?     @map("release_date")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  genre         MusicGenre    @relation(fields: [genreId], references: [id])
+  playlists     PlaylistSong[]
+  likes         SongLike[]
+
+  @@map("songs")
+}
+
+// Playlists
+model Playlist {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  name          String
+  description   String?  @db.Text
+  coverImageUrl String?  @map("cover_image_url") @db.VarChar(512)
+  isPublic      Boolean  @default(true) @map("is_public")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songs         PlaylistSong[]
+
+  @@map("playlists")
+}
+
+// Junction Tables
+
+model PlaylistSong {
+  playlistId Int      @map("playlist_id")
+  songId     Int      @map("song_id")
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, songId])
+  @@map("playlist_songs")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  message   String   @db.Text
+  type      String   @default("GENERAL")
+  isRead    Boolean  @default(false) @map("is_read")
+  actionUrl String?  @map("action_url")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+
+model VideoLike {
+  userId    Int      @map("user_id")
+  videoId   Int      @map("video_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, videoId])
+  @@map("video_likes")
+}
+
+model VideoView {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id") // Optional for anonymous views if we ever allow them, but usually tracked for history
+  videoId   Int      @map("video_id")
+  ipAddress String?  @map("ip_address")
+  device    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("video_views")
+}
+
+model SongLike {
+  userId    Int      @map("user_id")
+  songId    Int      @map("song_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([userId, songId])
+  @@map("song_likes")
+}
+
+// New Models
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  videoId   Int      @map("video_id")
+  text      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  parentId  Int?     @map("parent_id")
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Follows {
+  followerId  Int @map("follower_id")
+  followingId Int @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower    User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}

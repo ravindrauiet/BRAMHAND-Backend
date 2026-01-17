@@ -1,0 +1,22 @@
+Starting Migrate v2 (Compat Mode)...
+[2025-12-31T10:25:25.976Z] Connecting to video_streaming_db...
+[2025-12-31T10:25:26.036Z] Connected.
+[2025-12-31T10:25:26.040Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN content_rating VARCHAR(10) DEFAULT 'U/A 13+'
+[2025-12-31T10:25:26.117Z] Executed: ALTER TABLE videos ADD COLUMN release_date DATE
+[2025-12-31T10:25:26.120Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN duration INT DEFAULT 0
+[2025-12-31T10:25:26.123Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN language VARCHAR(50) DEFAULT 'Maithili'
+[2025-12-31T10:25:26.126Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN views_count INT DEFAULT 0
+[2025-12-31T10:25:26.129Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN likes_count INT DEFAULT 0
+[2025-12-31T10:25:26.131Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN shares_count INT DEFAULT 0
+[2025-12-31T10:25:26.216Z] Executed: ALTER TABLE videos ADD COLUMN tags TEXT
+[2025-12-31T10:25:26.304Z] Executed: ALTER TABLE videos ADD COLUMN season_number INT DEFAULT NULL
+[2025-12-31T10:25:26.391Z] Executed: ALTER TABLE videos ADD COLUMN episode_number INT DEFAULT NULL
+[2025-12-31T10:25:26.392Z] Schema updated successfully.
+[2025-12-31T10:25:46.735Z] Connecting to video_streaming_db for V3...
+[2025-12-31T10:25:46.789Z] Connected.
+[2025-12-31T10:25:46.795Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN series_id INT DEFAULT NULL
+[2025-12-31T10:25:46.798Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN quality_tags VARCHAR(50) DEFAULT 'HD'
+[2025-12-31T10:25:46.802Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN audio_languages VARCHAR(50) DEFAULT 'Maithili'
+[2025-12-31T10:25:46.805Z] Column already exists (Ignored): ALTER TABLE videos ADD COLUMN is_active BOOLEAN DEFAULT TRUE
+[2025-12-31T10:25:46.814Z] Created watch_history table.
+[2025-12-31T10:25:46.815Z] Migration V3 completed.

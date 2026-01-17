@@ -1,0 +1,27 @@
+Starting Seed...
+[2025-12-31T10:29:14.114Z] Initializing Pool...
+[2025-12-31T10:29:14.121Z] Connecting to video_streaming_db at localhost...
+[2025-12-31T10:29:14.168Z] Connected successfully.
+[2025-12-31T10:29:14.169Z] Seeding Users...
+[2025-12-31T10:29:14.268Z] Using existing creator: 3
+[2025-12-31T10:29:14.269Z] Seeding Categories...
+[2025-12-31T10:29:14.291Z] Seeding Genres...
+[2025-12-31T10:29:14.319Z] Seeding Videos...
+[2025-12-31T10:29:14.321Z] Processing Series: Mithila Ke Angana
+[2025-12-31T10:29:14.330Z]   Series ID: 1
+[2025-12-31T10:29:14.334Z]     Episode 1 inserted
+[2025-12-31T10:29:14.338Z]     Episode 2 inserted
+[2025-12-31T10:29:14.341Z]     Episode 3 inserted
+[2025-12-31T10:29:14.342Z] Processing Series: Elephants Dream
+[2025-12-31T10:29:14.347Z]   Series ID: 5
+[2025-12-31T10:29:14.350Z]     Episode 1 inserted
+[2025-12-31T10:29:14.352Z] Processing Series: Sintel
+[2025-12-31T10:29:14.358Z]   Series ID: 7
+[2025-12-31T10:29:14.362Z]     Episode 1 inserted
+[2025-12-31T10:29:14.362Z] Processing Series: Tears of Steel
+[2025-12-31T10:29:14.368Z]   Series ID: 9
+[2025-12-31T10:29:14.372Z]     Episode 1 inserted
+[2025-12-31T10:29:14.372Z] Processing Series: Big Buck Bunny
+[2025-12-31T10:29:14.377Z]   Series ID: 11
+[2025-12-31T10:29:14.380Z]     Episode 1 inserted
+[2025-12-31T10:29:14.380Z] Seeding Complete. Exiting...

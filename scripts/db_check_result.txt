@@ -1,0 +1,14 @@
+Databases found:
+agent
+bhaigo_db
+bhavish_crm
+evozn_inc
+information_schema
+maydiv_crm
+mysql
+performance_schema
+short_video_music_app
+sys
+teerth_smarak
+tirhuta_video_streaming
+video_streaming_db
