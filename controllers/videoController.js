@@ -100,6 +100,16 @@ exports.getTrending = async (req, res) => {
     }
 };
 
+exports.getPublicCategories = async (req, res) => {
+    try {
+        const [categories] = await pool.query('SELECT * FROM video_categories WHERE is_active = TRUE ORDER BY name ASC');
+        res.json({ categories });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
 exports.getVideoById = async (req, res) => {
     try {
         const { id } = req.params;
