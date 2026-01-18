@@ -4,6 +4,7 @@ const videoController = require('../controllers/videoController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.get('/', videoController.getVideos);
+router.get('/categories', videoController.getPublicCategories);
 router.get('/trending', videoController.getTrending);
 router.get('/:id', videoController.getVideoById);
 // Video Interactions

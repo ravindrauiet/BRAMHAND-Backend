@@ -59,9 +59,29 @@ const getSongById = async (req, res) => {
     }
 };
 
+// @desc    Get all Playlists
+// @route   GET /api/admin/playlists
+const getAllPlaylists = async (req, res) => {
+    try {
+        const [playlists] = await pool.query(`
+            SELECT p.id, p.name, p.description, p.cover_image as coverImage, p.created_at as createdAt,
+                   u.full_name as creatorName, u.profile_image as creatorImage,
+                   (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) as songCount
+            FROM playlists p
+            JOIN users u ON p.user_id = u.id
+            ORDER BY p.created_at DESC
+        `);
+        res.json({ success: true, playlists });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getAllSongs,
     getSongById,
     deleteSong,
-    toggleSongStatus
+    toggleSongStatus,
+    getAllPlaylists
 };
