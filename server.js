@@ -39,6 +39,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/creator', creatorRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Error Handling
 app.use((err, req, res, next) => {
