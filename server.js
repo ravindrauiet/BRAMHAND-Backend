@@ -1,8 +1,10 @@
+console.log('Starting server.js...');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+console.log('Loading DB config...');
 const pool = require('./config/db'); // Test DB connection
 
 // Load Routes
@@ -32,14 +34,14 @@ app.get('/', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/videos', videoRoutes);
-app.use('/api/music', musicRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/creator', creatorRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/admin', require('./routes/adminRoutes'));
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/videos', '/videos'], videoRoutes);
+app.use(['/api/music', '/music'], musicRoutes);
+app.use(['/api/user', '/user'], userRoutes);
+app.use(['/api/creator', '/creator'], creatorRoutes);
+app.use(['/api/notifications', '/notifications'], notificationRoutes);
+app.use(['/api/comments', '/comments'], commentRoutes);
+app.use(['/api/admin', '/admin'], require('./routes/adminRoutes'));
 
 // Error Handling
 app.use((err, req, res, next) => {
@@ -51,6 +53,7 @@ app.use((err, req, res, next) => {
     });
 });
 
+console.log('Attempting to listen on port ' + PORT);
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
