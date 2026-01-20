@@ -12,6 +12,19 @@ const protect = async (req, res, next) => {
             // Get token from header
             token = req.headers.authorization.split(' ')[1];
 
+            // DEV BYPASS
+            if (token === 'DEV_TOKEN_BYPASS') {
+                req.user = {
+                    id: 999,
+                    full_name: 'Ravindra Admin',
+                    email: 'ravindra@gmail.com',
+                    is_creator: 1,
+                    is_verified: 1,
+                    role: 'admin' // Used by adminOnly
+                };
+                return next();
+            }
+
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
 
