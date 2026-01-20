@@ -14,6 +14,10 @@ router.delete('/:id/like', protect, videoController.unlikeVideo);
 router.post('/:id/share', protect, videoController.shareVideo);
 router.get('/:id/comments', videoController.getComments);
 router.post('/:id/comments', protect, videoController.addComment);
-router.post('/', protect, videoController.uploadVideo);
+const upload = require('../middleware/upload');
+
+// ... existing routes ...
+
+router.post('/', protect, upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), videoController.uploadVideo);
 
 module.exports = router;

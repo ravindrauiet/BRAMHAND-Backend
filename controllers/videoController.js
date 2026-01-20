@@ -167,13 +167,41 @@ exports.getVideoById = async (req, res) => {
 
 exports.uploadVideo = async (req, res) => {
     try {
-        const { title, video_url, category_id, creator_id, type = 'VIDEO' } = req.body;
+        const { title, category_id, creator_id, type = 'VIDEO', description, is_featured, is_trending } = req.body;
+
+        let video_url = req.body.video_url; // Allow URL if provided (legacy support)
+        let thumbnail_url = req.body.thumbnail_url;
+
+        // If files are uploaded via Multer S3
+        if (req.files) {
+            if (req.files.video && req.files.video[0]) {
+                video_url = req.files.video[0].location; // S3 URL
+            }
+            if (req.files.thumbnail && req.files.thumbnail[0]) {
+                thumbnail_url = req.files.thumbnail[0].location; // S3 URL
+            }
+        }
+
+        if (!video_url) {
+            return res.status(400).json({ error: 'Video file or URL is required' });
+        }
+
         // Basic insert
         const [result] = await pool.query(
-            'INSERT INTO videos (title, video_url, category_id, creator_id, type) VALUES (?, ?, ?, ?, ?)',
-            [title, video_url, category_id, creator_id, type]
+            'INSERT INTO videos (title, description, video_url, thumbnail_url, category_id, creator_id, type, is_featured, is_trending, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            [
+                title,
+                description || null,
+                video_url,
+                thumbnail_url || null,
+                category_id,
+                creator_id,
+                type,
+                is_featured ? 1 : 0,
+                is_trending ? 1 : 0
+            ]
         );
-        res.json({ success: true, id: result.insertId });
+        res.json({ success: true, id: result.insertId, video_url, thumbnail_url });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to upload' });
