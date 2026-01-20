@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getStats, getAllUsers, getUserById, deleteUser, updateUserStatus } = require('../controllers/adminController');
-const { getAllVideos, getVideoById, deleteVideo: deleteAdminVideo, toggleVideoStatus } = require('../controllers/adminVideoController');
+const { getAllVideos, getVideoById, deleteVideo: deleteAdminVideo, toggleVideoStatus, uploadVideo } = require('../controllers/adminVideoController');
 const { getAllSongs, getSongById, deleteSong: deleteAdminSong, toggleSongStatus: toggleSongStatusAdmin, getAllPlaylists } = require('../controllers/adminMusicController');
 const { getAllCreators, toggleMonetization } = require('../controllers/adminCreatorController');
 const {
@@ -10,6 +10,7 @@ const {
     createMusicGenre, deleteMusicGenre
 } = require('../controllers/adminCategoryController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
 
 router.get('/stats', protect, adminOnly, getStats);
 // User Routes
@@ -19,6 +20,7 @@ router.delete('/users/:id', protect, adminOnly, deleteUser);
 router.patch('/users/:id/status', protect, adminOnly, updateUserStatus);
 
 // Video Routes
+router.post('/videos', protect, adminOnly, upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), uploadVideo);
 router.get('/videos', protect, adminOnly, getAllVideos);
 router.get('/videos/:id', protect, adminOnly, getVideoById);
 router.delete('/videos/:id', protect, adminOnly, deleteAdminVideo);

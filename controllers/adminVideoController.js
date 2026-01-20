@@ -65,9 +65,81 @@ const getVideoById = async (req, res) => {
     }
 };
 
+// @desc    Upload New Video
+// @route   POST /api/admin/videos
+const uploadVideo = async (req, res) => {
+    try {
+        const {
+            title,
+            description,
+            categoryId,
+            creatorId,
+            language = 'Hindi',
+            contentRating = 'U',
+            type = 'VIDEO',
+            isActive = 'true',
+            isTrending = 'false',
+            isFeatured = 'false'
+        } = req.body;
+
+        let videoUrl = null;
+        let thumbnailUrl = null;
+
+        // Get uploaded file URLs from multer-s3
+        if (req.files) {
+            if (req.files.video && req.files.video[0]) {
+                videoUrl = req.files.video[0].location; // S3 URL
+            }
+            if (req.files.thumbnail && req.files.thumbnail[0]) {
+                thumbnailUrl = req.files.thumbnail[0].location; // S3 URL
+            }
+        }
+
+        if (!videoUrl) {
+            return res.status(400).json({ success: false, message: 'Video file is required' });
+        }
+
+        // Insert video into database
+        const [result] = await pool.query(
+            `INSERT INTO videos (
+                title, description, video_url, thumbnail_url, 
+                category_id, creator_id, language, content_rating, type,
+                is_active, is_trending, is_featured,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            [
+                title,
+                description || null,
+                videoUrl,
+                thumbnailUrl || null,
+                categoryId,
+                creatorId,
+                language,
+                contentRating,
+                type,
+                isActive === 'true' || isActive === true ? 1 : 0,
+                isTrending === 'true' || isTrending === true ? 1 : 0,
+                isFeatured === 'true' || isFeatured === true ? 1 : 0
+            ]
+        );
+
+        res.json({
+            success: true,
+            id: result.insertId,
+            videoUrl,
+            thumbnailUrl,
+            message: 'Video uploaded successfully'
+        });
+    } catch (error) {
+        console.error('Upload video error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getAllVideos,
     getVideoById,
     deleteVideo,
-    toggleVideoStatus
+    toggleVideoStatus,
+    uploadVideo
 };
