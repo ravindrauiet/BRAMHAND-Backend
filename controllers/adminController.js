@@ -9,8 +9,8 @@ const getStats = async (req, res) => {
         const [videos] = await pool.query('SELECT COUNT(*) as count FROM videos');
         const [songs] = await pool.query('SELECT COUNT(*) as count FROM songs');
         const [creators] = await pool.query('SELECT COUNT(*) as count FROM creator_profiles');
-        const [views] = await pool.query('SELECT SUM(views_count) as total FROM videos');
-        const [earnings] = await pool.query('SELECT SUM(total_earnings) as total FROM creator_profiles');
+        const [views] = await pool.query('SELECT CAST(SUM(views_count) AS UNSIGNED) as total FROM videos');
+        const [earnings] = await pool.query('SELECT CAST(SUM(total_earnings) AS CHAR) as total FROM creator_profiles');
 
         // Recent Users
         const [recentUsers] = await pool.query(`
@@ -134,7 +134,13 @@ const getUserById = async (req, res) => {
         const user = users[0];
 
         // 2. Creator Profile
-        const [profiles] = await pool.query('SELECT * FROM creator_profiles WHERE user_id = ?', [userId]);
+        const [profiles] = await pool.query(`
+            SELECT id, user_id, popular_name, pan_card, bank_name, account_number, ifsc_code, account_holder_name, upi_id,
+                   CAST(monetization_percentage AS CHAR) as monetization_percentage,
+                   CAST(total_earnings AS CHAR) as total_earnings,
+                   is_monetization_enabled, created_at, updated_at
+            FROM creator_profiles WHERE user_id = ?
+        `, [userId]);
         user.creatorProfile = profiles[0] || null;
 
         // 3. Videos
