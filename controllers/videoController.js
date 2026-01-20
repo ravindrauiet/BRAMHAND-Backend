@@ -208,6 +208,29 @@ exports.uploadVideo = async (req, res) => {
     }
 };
 
+exports.deleteVideo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM videos WHERE id = ?', [id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to delete' });
+    }
+};
+
+exports.updateVideoStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isActive } = req.body;
+        await pool.query('UPDATE videos SET is_active = ?, updated_at = NOW() WHERE id = ?', [isActive, id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
 exports.recordView = async (req, res) => {
     try {
         const { id } = req.params;

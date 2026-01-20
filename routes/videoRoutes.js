@@ -19,5 +19,7 @@ const upload = require('../middleware/upload');
 // ... existing routes ...
 
 router.post('/', protect, upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), videoController.uploadVideo);
+router.delete('/:id', protect, videoController.deleteVideo);
+router.patch('/:id/status', protect, videoController.updateVideoStatus);
 
 module.exports = router;
