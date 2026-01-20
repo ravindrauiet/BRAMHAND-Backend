@@ -7,6 +7,7 @@ const getAllSongs = async (req, res) => {
         const [songs] = await pool.query(`
             SELECT s.id, s.title, s.artist, s.album, s.audio_url as audioUrl, s.cover_image_url as coverImageUrl,
                    s.is_active as isActive, s.is_trending as isTrending, s.is_featured as isFeatured,
+                   s.plays_count as playsCount, s.likes_count as likesCount,
                    s.created_at as createdAt,
                    g.name as genreName
             FROM songs s
@@ -50,7 +51,7 @@ const toggleSongStatus = async (req, res) => {
 // @route   GET /api/admin/songs/:id
 const getSongById = async (req, res) => {
     try {
-        const [songs] = await pool.query('SELECT * FROM songs WHERE id = ?', [req.params.id]);
+        const [songs] = await pool.query('SELECT *, CAST(file_size AS CHAR) as file_size FROM songs WHERE id = ?', [req.params.id]);
         if (songs.length === 0) return res.status(404).json({ success: false, message: 'Song not found' });
         res.json({ success: true, song: songs[0] });
     } catch (error) {

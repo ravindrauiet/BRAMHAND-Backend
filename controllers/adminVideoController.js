@@ -7,8 +7,10 @@ const getAllVideos = async (req, res) => {
         const type = req.query.type || 'VIDEO';
         const [videos] = await pool.query(`
             SELECT v.id, v.title, v.description, v.video_url as videoUrl, v.thumbnail_url as thumbnailUrl,
-                   v.views_count as viewsCount, v.is_active as isActive, v.created_at as createdAt,
-                   c.name as categoryName, u.full_name as creatorName
+                   v.views_count as viewsCount, v.likes_count as likesCount, v.comments_count as commentsCount, v.shares_count as sharesCount, 
+                   v.is_active as isActive, v.is_trending as isTrending, v.is_featured as isFeatured, v.content_rating as contentRating,
+                   v.created_at as createdAt,
+                   c.name as categoryName, u.full_name as creatorName, u.profile_image as creatorImage
             FROM videos v
             LEFT JOIN video_categories c ON v.category_id = c.id
             LEFT JOIN users u ON v.creator_id = u.id
@@ -52,7 +54,9 @@ const toggleVideoStatus = async (req, res) => {
 // @route   GET /api/admin/videos/:id
 const getVideoById = async (req, res) => {
     try {
-        const [videos] = await pool.query('SELECT * FROM videos WHERE id = ?', [req.params.id]);
+        const [videos] = await pool.query(`
+            SELECT *, CAST(file_size AS CHAR) as file_size FROM videos WHERE id = ?
+        `, [req.params.id]);
         if (videos.length === 0) return res.status(404).json({ success: false, message: 'Video not found' });
         res.json({ success: true, video: videos[0] });
     } catch (error) {
