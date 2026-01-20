@@ -6,7 +6,7 @@ const getAllCreators = async (req, res) => {
     try {
         // Fetch creator profiles joined with stats
         const [creators] = await pool.query(`
-            SELECT c.id, c.popular_name as popularName, 
+            SELECT c.id, c.user_id as userId, c.popular_name as popularName, 
                    c.bank_name as bankName, c.account_number as accountNumber, c.pan_card as panCard,
                    CAST(c.total_earnings AS CHAR) as totalEarnings, 
                    CAST(c.monetization_percentage AS CHAR) as monetizationPercentage,
@@ -18,9 +18,29 @@ const getAllCreators = async (req, res) => {
             ORDER BY c.created_at DESC
         `);
 
-        res.json({ success: true, creators });
+        // Transform to include nested user object for frontend compatibility
+        const transformedCreators = creators.map(c => ({
+            id: c.id,
+            userId: c.userId,
+            popularName: c.popularName,
+            bankName: c.bankName,
+            accountNumber: c.accountNumber,
+            panCard: c.panCard,
+            totalEarnings: c.totalEarnings,
+            monetizationPercentage: c.monetizationPercentage,
+            isMonetizationEnabled: c.isMonetizationEnabled,
+            createdAt: c.createdAt,
+            user: {
+                fullName: c.fullName,
+                email: c.email,
+                profileImage: c.profileImage,
+                isVerified: c.isVerified
+            }
+        }));
+
+        res.json({ success: true, creators: transformedCreators });
     } catch (error) {
-        console.error(error);
+        console.error('Get creators error:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };

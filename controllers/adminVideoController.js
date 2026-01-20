@@ -132,7 +132,17 @@ const uploadVideo = async (req, res) => {
         });
     } catch (error) {
         console.error('Upload video error:', error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            body: req.body,
+            files: req.files ? Object.keys(req.files) : 'no files'
+        });
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server Error',
+            detail: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 

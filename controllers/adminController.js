@@ -115,9 +115,30 @@ const updateUserStatus = async (req, res) => {
             await pool.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
         }
 
+        // If marking as creator, ensure creator profile exists
+        if (isCreator === true || isCreator === 1) {
+            // Check if creator profile already exists
+            const [existing] = await pool.query('SELECT id FROM creator_profiles WHERE user_id = ?', [req.params.id]);
+
+            if (existing.length === 0) {
+                // Get user info for creating profile
+                const [users] = await pool.query('SELECT full_name FROM users WHERE id = ?', [req.params.id]);
+                const userName = users[0]?.full_name || 'Creator';
+
+                // Create creator profile with defaults
+                await pool.query(`
+                    INSERT INTO creator_profiles 
+                    (user_id, popular_name, monetization_percentage, total_earnings, is_monetization_enabled, created_at, updated_at)
+                    VALUES (?, ?, 70, 0, 0, NOW(), NOW())
+                `, [req.params.id, userName]);
+
+                console.log(`Created creator profile for user ${req.params.id}`);
+            }
+        }
+
         res.json({ success: true, message: 'User updated' });
     } catch (error) {
-        console.error(error);
+        console.error('Update user status error:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };

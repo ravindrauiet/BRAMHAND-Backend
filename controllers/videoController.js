@@ -167,7 +167,32 @@ exports.getVideoById = async (req, res) => {
 
 exports.uploadVideo = async (req, res) => {
     try {
-        const { title, category_id, creator_id, type = 'VIDEO', description, is_featured, is_trending } = req.body;
+        const {
+            title,
+            category_id,
+            type = 'VIDEO',
+            description,
+            language = 'Hindi',
+            content_rating = 'U',
+            is_active = true,
+            is_featured = false,
+            is_trending = false
+        } = req.body;
+
+        // Get creator_id from authenticated user (NOT from request body for security)
+        const creator_id = req.user ? req.user.id : null;
+
+        console.log('Upload Video - Authentication check:', {
+            hasUser: !!req.user,
+            creator_id,
+            title,
+            type
+        });
+
+        if (!creator_id) {
+            console.error('Upload failed: No creator_id found');
+            return res.status(401).json({ error: 'Authentication required' });
+        }
 
         let video_url = req.body.video_url; // Allow URL if provided (legacy support)
         let thumbnail_url = req.body.thumbnail_url;
@@ -186,9 +211,14 @@ exports.uploadVideo = async (req, res) => {
             return res.status(400).json({ error: 'Video file or URL is required' });
         }
 
-        // Basic insert
+        // Insert with all required fields and proper defaults
         const [result] = await pool.query(
-            'INSERT INTO videos (title, description, video_url, thumbnail_url, category_id, creator_id, type, is_featured, is_trending, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            `INSERT INTO videos (
+                title, description, video_url, thumbnail_url, 
+                category_id, creator_id, type, language, content_rating,
+                is_active, is_featured, is_trending, 
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
@@ -197,13 +227,24 @@ exports.uploadVideo = async (req, res) => {
                 category_id,
                 creator_id,
                 type,
+                language,
+                content_rating,
+                is_active ? 1 : 0,
                 is_featured ? 1 : 0,
                 is_trending ? 1 : 0
             ]
         );
+
+        console.log('Video uploaded successfully:', {
+            id: result.insertId,
+            creator_id,
+            type,
+            title
+        });
+
         res.json({ success: true, id: result.insertId, video_url, thumbnail_url });
     } catch (error) {
-        console.error(error);
+        console.error('Upload video error:', error);
         res.status(500).json({ error: 'Failed to upload' });
     }
 };
@@ -387,5 +428,123 @@ exports.addComment = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed' });
+    }
+};
+// @desc    Get current user's content (videos/reels)
+// @route   GET /api/videos/my-content
+// @access  Private
+exports.getMyContent = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { type } = req.query; // 'VIDEO' or 'REEL' or undefined for all
+
+        let query = `
+            SELECT v.*, c.name as categoryName,
+                   (SELECT COUNT(*) FROM video_likes WHERE video_id = v.id) as likesCount,
+                  (SELECT COUNT(*) FROM video_shares WHERE video_id = v.id) as sharesCount
+            FROM videos v
+            LEFT JOIN video_categories c ON v.category_id = c.id
+            WHERE v.creator_id = ?
+        `;
+
+        const params = [userId];
+
+        if (type) {
+            query += ' AND v.type = ?';
+            params.push(type);
+        }
+
+        query += ' ORDER BY v.created_at DESC';
+
+        const [videos] = await pool.query(query, params);
+
+        res.json({ success: true, videos });
+    } catch (error) {
+        console.error('Get my content error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Update video details
+// @route   PATCH /api/videos/:id
+// @access  Private (owner only)
+exports.updateVideoDetails = async (req, res) => {
+    try {
+        const videoId = req.params.id;
+        const userId = req.user.id;
+
+        // Check ownership
+        const [videos] = await pool.query('SELECT creator_id FROM videos WHERE id = ?', [videoId]);
+        if (videos.length === 0) {
+            return res.status(404).json({ success: false, message: 'Video not found' });
+        }
+
+        if (videos[0].creator_id !== userId) {
+            return res.status(403).json({ success: false, message: 'Not authorized to edit this video' });
+        }
+
+        const { title, description, categoryId, isActive } = req.body;
+        const updates = [];
+        const values = [];
+
+        if (title !== undefined) {
+            updates.push('title = ?');
+            values.push(title);
+        }
+        if (description !== undefined) {
+            updates.push('description = ?');
+            values.push(description);
+        }
+        if (categoryId !== undefined) {
+            updates.push('category_id = ?');
+            values.push(categoryId);
+        }
+        if (isActive !== undefined) {
+            updates.push('is_active = ?');
+            values.push(isActive ? 1 : 0);
+        }
+
+        if (updates.length > 0) {
+            updates.push('updated_at = NOW()');
+            values.push(videoId);
+            await pool.query(`UPDATE videos SET ${updates.join(', ')} WHERE id = ?`, values);
+        }
+
+        res.json({ success: true, message: 'Video updated successfully' });
+    } catch (error) {
+        console.error('Update video error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Delete video (owner only)
+// @route   DELETE /api/videos/:id
+// @access  Private
+exports.deleteVideoByOwner = async (req, res) => {
+    try {
+        const videoId = req.params.id;
+        const userId = req.user.id;
+
+        // Check ownership
+        const [videos] = await pool.query('SELECT creator_id FROM videos WHERE id = ?', [videoId]);
+        if (videos.length === 0) {
+            return res.status(404).json({ success: false, message: 'Video not found' });
+        }
+
+        if (videos[0].creator_id !== userId) {
+            return res.status(403).json({ success: false, message: 'Not authorized to delete this video' });
+        }
+
+        // Delete video and related data (cascade should handle this, but explicit is better)
+        await pool.query('DELETE FROM video_likes WHERE video_id = ?', [videoId]);
+        await pool.query('DELETE FROM video_views WHERE video_id = ?', [videoId]);
+        await pool.query('DELETE FROM video_comments WHERE video_id = ?', [videoId]);
+        await pool.query('DELETE FROM video_shares WHERE video_id = ?', [videoId]);
+        await pool.query('DELETE FROM videos WHERE id = ?', [videoId]);
+
+        res.json({ success: true, message: 'Video deleted successfully' });
+    } catch (error) {
+        console.error('Delete video error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
