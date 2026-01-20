@@ -1,0 +1,46 @@
+Starting debug script at 2026-01-20T11:58:24.710Z
+DB_HOST: localhost
+Pool created. Executing query...
+Query Failed!
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at PromisePool.query (F:\videoStreaming\backend\node_modules\mysql2\lib\promise\pool.js:36:22)
+    at testCreatorsQuery (F:\videoStreaming\backend\debug_creators.js:28:39)
+    at Object.<anonymous> (F:\videoStreaming\backend\debug_creators.js:46:1)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+Starting debug script at 2026-01-20T12:02:46.505Z
+DB_HOST: localhost
+Pool created. Executing query...
+Query Failed!
+Error: Unknown column 'c.bio' in 'field list'
+Error: Unknown column 'c.bio' in 'field list'
+    at PromisePool.query (F:\videoStreaming\backend\node_modules\mysql2\lib\promise\pool.js:36:22)
+    at testCreatorsQuery (F:\videoStreaming\backend\debug_creators.js:28:39)
+    at Object.<anonymous> (F:\videoStreaming\backend\debug_creators.js:46:1)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+Starting debug script at 2026-01-20T12:06:37.340Z
+DB_HOST: localhost
+Pool created. Executing query...
+Success! Found 9 creators.
+First creator sample: {
+  "id": 2,
+  "totalEarnings": "0.00",
+  "isMonetizationEnabled": 0,
+  "createdAt": "2026-01-02T08:31:35.000Z",
+  "fullName": "Udit Narayan",
+  "email": "uditnarayan@tirhuta.com",
+  "profileImage": "https://lh3.googleusercontent.com/aida-public/AB6AXuAodKyOVKhd_sVUQdW0P5oM--Li2ECxhvwcryB9tp8WaZftlvnt787AxelmaipEYFQ7ZVjvWSp1mndFHkq1f2WEam9TuOwxei7j5mqVDClz4QTZcVDT_O8ibtCH_0jI08v3yMjg3etDQumdZChFTOUBmHtYcKUm6zQGeFCIWOdokFqnfkgfPV0Irb9Abhsz1C5qs3vZT8e4I2C2YYTEHKEQyd1P5MAJ1e7maltAuqpEeT-I0SMbHr_-HiyVDR9XAxdFpyqiyvKJpfY",
+  "isVerified": 0
+}
