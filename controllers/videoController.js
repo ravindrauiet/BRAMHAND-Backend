@@ -558,9 +558,7 @@ exports.getMyContent = async (req, res) => {
         const { type } = req.query; // 'VIDEO' or 'REEL' or undefined for all
 
         let query = `
-            SELECT v.*, c.name as categoryName,
-                   (SELECT COUNT(*) FROM video_likes WHERE video_id = v.id) as likesCount,
-                  (SELECT COUNT(*) FROM video_shares WHERE video_id = v.id) as sharesCount
+            SELECT v.*, c.name as categoryName
             FROM videos v
             LEFT JOIN video_categories c ON v.category_id = c.id
             WHERE v.creator_id = ?
