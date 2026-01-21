@@ -42,7 +42,10 @@ const upload = multer({
     }),
     fileFilter: fileFilter,
     limits: {
-        fileSize: 500 * 1024 * 1024 // 500 MB limit
+        fileSize: 500 * 1024 * 1024, // 500 MB limit
+        fieldSize: 10 * 1024 * 1024, // 10 MB field value limit (for long blob URLs on web)
+        fields: 20, // Max number of non-file fields
+        fieldNameSize: 200 // Max field name size
     }
 });
 

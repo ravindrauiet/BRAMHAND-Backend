@@ -198,6 +198,7 @@ exports.uploadVideo = async (req, res) => {
         let thumbnail_url = req.body.thumbnail_url;
 
         // If files are uploaded via Multer S3
+        console.log('🔍 req.files:', JSON.stringify(req.files, null, 2));
         if (req.files) {
             if (req.files.video && req.files.video[0]) {
                 video_url = req.files.video[0].location; // S3 URL
