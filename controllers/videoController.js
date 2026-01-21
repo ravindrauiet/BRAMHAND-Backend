@@ -548,3 +548,38 @@ exports.deleteVideoByOwner = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// @desc    Get current user's content (videos/reels)
+// @route   GET /api/videos/my-content
+// @access  Private
+exports.getMyContent = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { type } = req.query; // 'VIDEO' or 'REEL' or undefined for all
+
+        let query = `
+            SELECT v.*, c.name as categoryName,
+                   (SELECT COUNT(*) FROM video_likes WHERE video_id = v.id) as likesCount,
+                  (SELECT COUNT(*) FROM video_shares WHERE video_id = v.id) as sharesCount
+            FROM videos v
+            LEFT JOIN video_categories c ON v.category_id = c.id
+            WHERE v.creator_id = ?
+        `;
+
+        const params = [userId];
+
+        if (type) {
+            query += ' AND v.type = ?';
+            params.push(type);
+        }
+
+        query += ' ORDER BY v.created_at DESC';
+
+        const [videos] = await pool.query(query, params);
+
+        res.json({ success: true, videos });
+    } catch (error) {
+        console.error('Get my content error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
