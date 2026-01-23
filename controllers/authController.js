@@ -32,7 +32,7 @@ exports.register = async (req, res) => {
         // Create User
         const isEmail = mobile_or_email.includes('@');
         const [result] = await pool.query(
-            'INSERT INTO users (mobile_number, email, full_name, password_hash) VALUES (?, ?, ?, ?)',
+            'INSERT INTO users (mobile_number, email, full_name, password_hash, updated_at) VALUES (?, ?, ?, ?, NOW())',
             [
                 !isEmail ? mobile_or_email : null,
                 isEmail ? mobile_or_email : email,
