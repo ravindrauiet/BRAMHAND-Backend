@@ -79,7 +79,10 @@ const uploadVideo = async (req, res) => {
             type = 'VIDEO',
             isActive = 'true',
             isTrending = 'false',
-            isFeatured = 'false'
+            isFeatured = 'false',
+            seriesId = null,
+            episodeNumber = null,
+            seasonNumber = 1
         } = req.body;
 
         let videoUrl = null;
@@ -95,6 +98,8 @@ const uploadVideo = async (req, res) => {
             }
         }
 
+        if (!videoUrl && req.body.video_url) videoUrl = req.body.video_url; // Allow body URL for testing
+
         if (!videoUrl) {
             return res.status(400).json({ success: false, message: 'Video file is required' });
         }
@@ -105,8 +110,9 @@ const uploadVideo = async (req, res) => {
                 title, description, video_url, thumbnail_url, 
                 category_id, creator_id, language, content_rating, type,
                 is_active, is_trending, is_featured,
+                series_id, episode_number, season_number,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
@@ -119,7 +125,10 @@ const uploadVideo = async (req, res) => {
                 type,
                 isActive === 'true' || isActive === true ? 1 : 0,
                 isTrending === 'true' || isTrending === true ? 1 : 0,
-                isFeatured === 'true' || isFeatured === true ? 1 : 0
+                isFeatured === 'true' || isFeatured === true ? 1 : 0,
+                seriesId || null,
+                episodeNumber || null,
+                seasonNumber || 1
             ]
         );
 

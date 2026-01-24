@@ -53,6 +53,7 @@ model User {
   
   followers       Follows[] @relation("following")
   following       Follows[] @relation("follower")
+  createdSeries   Series[]
 
   @@map("users")
 }
@@ -119,6 +120,7 @@ model VideoCategory {
   createdAt DateTime @default(now()) @map("created_at")
 
   videos    Video[]
+  series    Series[]
 
   @@map("video_categories")
 }
@@ -143,7 +145,10 @@ model Video {
   creatorId     Int           @map("creator_id")
   categoryId    Int           @map("category_id")
   genreId       Int?          @map("genre_id")
+  
   seriesId      Int?          @map("series_id")
+  episodeNumber Int?          @map("episode_number") // For ordering within a series
+  seasonNumber  Int?          @default(1) @map("season_number") // Optional, defaults to Season 1
   
   title         String   @db.VarChar(255)
   description   String?       @db.Text
@@ -172,6 +177,7 @@ model Video {
   creator       User          @relation(fields: [creatorId], references: [id])
   category      VideoCategory @relation(fields: [categoryId], references: [id])
   genre         VideoGenre?   @relation(fields: [genreId], references: [id])
+  series        Series?       @relation(fields: [seriesId], references: [id])
   
   likes         VideoLike[]
   views         VideoView[]
@@ -342,4 +348,28 @@ model Follows {
 
   @@id([followerId, followingId])
   @@map("follows")
+}
+
+// Series
+model Series {
+  id            Int      @id @default(autoincrement())
+  title         String   @db.VarChar(255)
+  description   String?  @db.Text
+  thumbnailUrl  String?  @map("thumbnail_url") @db.VarChar(512)
+  coverImageUrl String?  @map("cover_image_url") @db.VarChar(512)
+  
+  creatorId     Int      @map("creator_id")
+  categoryId    Int      @map("category_id")
+  
+  isActive      Boolean  @default(true) @map("is_active")
+  isFeatured    Boolean  @default(false) @map("is_featured") 
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  creator       User          @relation(fields: [creatorId], references: [id])
+  category      VideoCategory @relation(fields: [categoryId], references: [id])
+  videos        Video[]
+
+  @@map("series")
 }
