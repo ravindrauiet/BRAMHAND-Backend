@@ -1,12 +1,22 @@
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+const jwt = require('jsonwebtoken');
+
 const API_URL = `http://localhost:${process.env.PORT || 5000}/api`;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; // Fallback must match server default if env missing
+
+// Generate a test token for User ID 1 (Assuming admin/creator exists or ID 1 is safe)
+const token = jwt.sign({ id: 1 }, JWT_SECRET, { expiresIn: '1h' });
+const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
 let seriesId = null;
 let videoId = null;
 
 async function test() {
     console.log("=== Testing Series Flow ===");
+    console.log("Using Token:", token.substring(0, 20) + "...");
 
     // 1. Create Series
     try {
@@ -14,10 +24,10 @@ async function test() {
         const res = await axios.post(`${API_URL}/series`, {
             title: "Test Series " + Date.now(),
             description: "A test series description",
-            categoryId: 1, // Assuming category 1 exists, ideally fetch one first
-            creatorId: 1,  // Assuming user 1 exists
+            categoryId: 1,
+            creatorId: 1,
             isActive: true
-        });
+        }, authHeaders);
         if (res.data.success) {
             seriesId = res.data.id;
             console.log("SUCCESS: Created Series ID:", seriesId);
@@ -49,7 +59,7 @@ async function test() {
             seriesId: seriesId,
             episodeNumber: 1,
             seasonNumber: 1
-        });
+        }, authHeaders);
 
         if (res.data.success) {
             videoId = res.data.id;
