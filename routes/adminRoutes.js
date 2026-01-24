@@ -24,6 +24,7 @@ router.post('/videos', protect, adminOnly, upload.fields([{ name: 'video', maxCo
 router.get('/videos', protect, adminOnly, getAllVideos);
 router.get('/videos/:id', protect, adminOnly, getVideoById);
 router.delete('/videos/:id', protect, adminOnly, deleteAdminVideo);
+router.patch('/videos/:id', protect, adminOnly, upload.none(), require('../controllers/adminVideoController').updateVideo); // Re-import to ensure function is found if module.exports structure requires it, or just use destructuring at top if possible but safer here if circular.
 router.patch('/videos/:id/status', protect, adminOnly, toggleVideoStatus);
 
 // Song Routes

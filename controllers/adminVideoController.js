@@ -155,10 +155,55 @@ const uploadVideo = async (req, res) => {
     }
 };
 
+// @desc    Update Video Details (Admin)
+// @route   PATCH /api/admin/videos/:id
+const updateVideo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            title, description, categoryId, creatorId, language,
+            contentRating, type, isActive, isTrending, isFeatured,
+            seriesId, episodeNumber, seasonNumber
+        } = req.body;
+
+        const updates = [];
+        const values = [];
+
+        // Build dynamic update query
+        if (title !== undefined) { updates.push('title = ?'); values.push(title); }
+        if (description !== undefined) { updates.push('description = ?'); values.push(description); }
+        if (categoryId !== undefined) { updates.push('category_id = ?'); values.push(categoryId); }
+        if (creatorId !== undefined) { updates.push('creator_id = ?'); values.push(creatorId); }
+        if (language !== undefined) { updates.push('language = ?'); values.push(language); }
+        if (contentRating !== undefined) { updates.push('content_rating = ?'); values.push(contentRating); }
+        if (type !== undefined) { updates.push('type = ?'); values.push(type); }
+        if (isActive !== undefined) { updates.push('is_active = ?'); values.push(isActive === 'true' || isActive === true ? 1 : 0); }
+        if (isTrending !== undefined) { updates.push('is_trending = ?'); values.push(isTrending === 'true' || isTrending === true ? 1 : 0); }
+        if (isFeatured !== undefined) { updates.push('is_featured = ?'); values.push(isFeatured === 'true' || isFeatured === true ? 1 : 0); }
+
+        // Series fields
+        if (seriesId !== undefined) { updates.push('series_id = ?'); values.push(seriesId || null); }
+        if (episodeNumber !== undefined) { updates.push('episode_number = ?'); values.push(episodeNumber || null); }
+        if (seasonNumber !== undefined) { updates.push('season_number = ?'); values.push(seasonNumber || 1); }
+
+        if (updates.length > 0) {
+            updates.push('updated_at = NOW()');
+            values.push(id);
+            await pool.query(`UPDATE videos SET ${updates.join(', ')} WHERE id = ?`, values);
+        }
+
+        res.json({ success: true, message: 'Video updated successfully' });
+    } catch (error) {
+        console.error('Update video error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getAllVideos,
     getVideoById,
     deleteVideo,
     toggleVideoStatus,
-    uploadVideo
+    uploadVideo,
+    updateVideo
 };
