@@ -8,7 +8,8 @@ const API_URL = `http://localhost:${process.env.PORT || 5000}/api`;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; // Fallback must match server default if env missing
 
 // Generate a test token for User ID 1 (Assuming admin/creator exists or ID 1 is safe)
-const token = jwt.sign({ id: 1 }, JWT_SECRET, { expiresIn: '1h' });
+// Use BYPASS Token to ensure Admin access for testing
+const token = 'DEV_TOKEN_BYPASS';
 const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
 
 let seriesId = null;
