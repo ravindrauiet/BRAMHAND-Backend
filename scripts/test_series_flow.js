@@ -2,7 +2,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const jwt = require('jsonwebtoken');
+
 
 const API_URL = `http://localhost:${process.env.PORT || 5000}/api`;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; // Fallback must match server default if env missing
