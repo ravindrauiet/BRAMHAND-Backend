@@ -11,6 +11,12 @@ exports.getVideos = async (req, res) => {
             type = 'VIDEO'
         } = req.query;
 
+        console.log('DEBUG: getVideos Request:', {
+            query: req.query,
+            parsedType: type,
+            excludeSeries: req.query.exclude_series
+        });
+
         let userId = null;
         if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
             const jwt = require('jsonwebtoken');
@@ -55,6 +61,9 @@ exports.getVideos = async (req, res) => {
             query += ' AND v.series_id = ?';
             params.push(req.query.series_id);
         }
+        if (req.query.exclude_series === 'true' || req.query.exclude_series === '1') {
+            query += ' AND (v.series_id IS NULL OR v.series_id = 0)';
+        }
         if (search) {
             query += ' AND (v.title LIKE ? OR v.description LIKE ? OR u.full_name LIKE ?)';
             params.push(`%${search}%`, `%${search}%`, `%${search}%`);
@@ -68,8 +77,12 @@ exports.getVideos = async (req, res) => {
             params.push(req.query.is_trending === 'true' || req.query.is_trending === '1' ? 1 : 0);
         }
 
+
         query += ' ORDER BY v.created_at DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
+
+        console.log('DEBUG: Final Query:', query);
+        console.log('DEBUG: Query Params:', params);
 
         const [videos] = await pool.query(query, params);
 
