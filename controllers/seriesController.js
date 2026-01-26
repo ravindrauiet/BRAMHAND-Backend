@@ -6,7 +6,9 @@ const getAllSeries = async (req, res) => {
     try {
         const { category_id, is_featured, is_active } = req.query;
         let query = `
-            SELECT s.*, c.name as categoryName, u.full_name as creatorName 
+            SELECT s.*, c.name as categoryName, u.full_name as creatorName,
+                   (SELECT COUNT(*) FROM videos WHERE series_id = s.id) as episodeCount,
+                   (SELECT COALESCE(SUM(views_count), 0) FROM videos WHERE series_id = s.id) as totalViews
             FROM series s
             LEFT JOIN video_categories c ON s.category_id = c.id
             LEFT JOIN users u ON s.creator_id = u.id

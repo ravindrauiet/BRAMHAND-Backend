@@ -9,7 +9,7 @@ const getAllVideos = async (req, res) => {
             SELECT v.id, v.title, v.description, v.video_url as videoUrl, v.thumbnail_url as thumbnailUrl,
                    v.views_count as viewsCount, v.likes_count as likesCount, v.comments_count as commentsCount, v.shares_count as sharesCount, 
                    v.is_active as isActive, v.is_trending as isTrending, v.is_featured as isFeatured, v.content_rating as contentRating,
-                   v.created_at as createdAt,
+                   v.created_at as createdAt, v.category_id as categoryId, v.creator_id as creatorId,
                    c.name as categoryName, u.full_name as creatorName, u.profile_image as creatorImage
             FROM videos v
             LEFT JOIN video_categories c ON v.category_id = c.id
@@ -42,7 +42,7 @@ const deleteVideo = async (req, res) => {
 const toggleVideoStatus = async (req, res) => {
     try {
         const { isActive } = req.body;
-        await pool.query('UPDATE videos SET is_active = ? WHERE id = ?', [isActive, req.params.id]);
+        await pool.query('UPDATE videos SET is_active = ? WHERE id = ?', [isActive === true || isActive === 'true' ? 1 : 0, req.params.id]);
         res.json({ success: true, message: 'Status updated' });
     } catch (error) {
         console.error(error);

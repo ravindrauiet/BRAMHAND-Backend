@@ -1,0 +1,1 @@
+ERROR: Error: Access denied for user 'admin'@'localhost' (using password: YES)
