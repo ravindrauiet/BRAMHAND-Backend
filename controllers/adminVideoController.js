@@ -194,8 +194,16 @@ const updateVideo = async (req, res) => {
 
         res.json({ success: true, message: 'Video updated successfully' });
     } catch (error) {
-        console.error('Update video error:', error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        console.error('❌ Update video error:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('Request body:', req.body);
+        console.error('Request params:', req.params);
+        res.status(500).json({
+            success: false,
+            message: 'Server Error',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
