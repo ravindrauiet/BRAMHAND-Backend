@@ -181,6 +181,24 @@ const updateVideo = async (req, res) => {
         if (isTrending !== undefined) { updates.push('is_trending = ?'); values.push(isTrending === 'true' || isTrending === true ? 1 : 0); }
         if (isFeatured !== undefined) { updates.push('is_featured = ?'); values.push(isFeatured === 'true' || isFeatured === true ? 1 : 0); }
 
+        // Handle file uploads (if new thumbnail/video provided)
+        if (req.files) {
+            if (req.files.thumbnail && req.files.thumbnail[0]) {
+                const thumbnailPath = req.files.thumbnail[0].path.replace(/\\/g, '/').replace('uploads/', '');
+                updates.push('thumbnail_url = ?');
+                values.push(`${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${thumbnailPath}`);
+            }
+            if (req.files.video && req.files.video[0]) {
+                const videoPath = req.files.video[0].path.replace(/\\/g, '/').replace('uploads/', '');
+                updates.push('video_url = ?');
+                values.push(`${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${videoPath}`);
+
+                // Update file size and duration if available
+                updates.push('file_size = ?');
+                values.push(req.files.video[0].size);
+            }
+        }
+
         // Series fields
         if (seriesId !== undefined) { updates.push('series_id = ?'); values.push(seriesId || null); }
         if (episodeNumber !== undefined) { updates.push('episode_number = ?'); values.push(episodeNumber || null); }
@@ -199,6 +217,7 @@ const updateVideo = async (req, res) => {
         console.error('Error stack:', error.stack);
         console.error('Request body:', req.body);
         console.error('Request params:', req.params);
+        console.error('Request files:', req.files);
         res.status(500).json({
             success: false,
             message: 'Server Error',
