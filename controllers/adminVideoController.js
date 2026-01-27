@@ -184,14 +184,17 @@ const updateVideo = async (req, res) => {
         // Handle file uploads (if new thumbnail/video provided)
         if (req.files) {
             if (req.files.thumbnail && req.files.thumbnail[0]) {
-                const thumbnailPath = req.files.thumbnail[0].path.replace(/\\/g, '/').replace('uploads/', '');
+                const file = req.files.thumbnail[0];
+                // S3 uploads have 'location' property, local uploads have 'path'
+                const thumbnailUrl = file.location || `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${file.path.replace(/\\/g, '/').replace('uploads/', '')}`;
                 updates.push('thumbnail_url = ?');
-                values.push(`${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${thumbnailPath}`);
+                values.push(thumbnailUrl);
             }
             if (req.files.video && req.files.video[0]) {
-                const videoPath = req.files.video[0].path.replace(/\\/g, '/').replace('uploads/', '');
+                const file = req.files.video[0];
+                const videoUrl = file.location || `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${file.path.replace(/\\/g, '/').replace('uploads/', '')}`;
                 updates.push('video_url = ?');
-                values.push(`${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${videoPath}`);
+                values.push(videoUrl);
 
                 // Update file size and duration if available
                 updates.push('file_size = ?');
