@@ -2,7 +2,8 @@ const pool = require('../config/db');
 
 exports.getProfile = async (req, res) => {
     try {
-        const userId = req.headers['x-user-id'] || 1;
+        // Use user ID from authenticated token (set by protect middleware)
+        const userId = req.user.id;
 
         // Get User
         const [users] = await pool.query('SELECT id, full_name, email, mobile_number, profile_image, is_creator FROM users WHERE id = ?', [userId]);
@@ -35,7 +36,7 @@ exports.getProfile = async (req, res) => {
 
 exports.updatePreferences = async (req, res) => {
     try {
-        const userId = req.headers['x-user-id'] || 1;
+        const userId = req.user.id;
         const { content_language, app_language, notification_enabled, auto_play, video_quality } = req.body;
 
         // Check if exists
@@ -54,6 +55,7 @@ exports.updatePreferences = async (req, res) => {
         }
         res.json({ success: true });
     } catch (error) {
+        console.error('Update Prefs Error:', error);
         res.status(500).json({ error: 'Failed' });
     }
 };
