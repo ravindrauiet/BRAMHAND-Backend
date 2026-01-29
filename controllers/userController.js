@@ -4,10 +4,32 @@ exports.getProfile = async (req, res) => {
     try {
         // Use user ID from authenticated token (set by protect middleware)
         const userId = req.user.id;
+        console.log('getProfile: Fetching profile for userId:', userId);
+
+        // DEV BYPASS HANDLE
+        if (userId === 999 || userId === '999') {
+            console.log('getProfile: Serving Mock Profile for Dev Admin');
+            return res.json({
+                user: {
+                    id: 999,
+                    full_name: 'Ravindra Admin',
+                    email: 'ravindra@gmail.com',
+                    mobile_number: '0000000000',
+                    profile_image: null,
+                    is_creator: 1,
+                    preferences: {},
+                    creatorProfile: { bio: 'Dev Admin' },
+                    _count: { followers: 100, following: 10 }
+                }
+            });
+        }
 
         // Get User
         const [users] = await pool.query('SELECT id, full_name, email, mobile_number, profile_image, is_creator FROM users WHERE id = ?', [userId]);
-        if (users.length === 0) return res.status(404).json({ error: 'User not found' });
+        if (users.length === 0) {
+            console.error('getProfile: User not found in DB for ID:', userId);
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         // Get Prefs
         const [prefs] = await pool.query('SELECT * FROM user_preferences WHERE user_id = ?', [userId]);
@@ -29,7 +51,7 @@ exports.getProfile = async (req, res) => {
 
         res.json({ user });
     } catch (error) {
-        console.error(error);
+        console.error('getProfile Error:', error);
         res.status(500).json({ error: 'Failed' });
     }
 };
