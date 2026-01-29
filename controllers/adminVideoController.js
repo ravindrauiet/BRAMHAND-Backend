@@ -185,20 +185,40 @@ const updateVideo = async (req, res) => {
         if (req.files) {
             if (req.files.thumbnail && req.files.thumbnail[0]) {
                 const file = req.files.thumbnail[0];
-                // S3 uploads have 'location' property, local uploads have 'path'
-                const thumbnailUrl = file.location || `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${file.path.replace(/\\/g, '/').replace('uploads/', '')}`;
-                updates.push('thumbnail_url = ?');
-                values.push(thumbnailUrl);
+                let thumbnailUrl = file.location; // S3 URL
+
+                if (!thumbnailUrl && file.path) {
+                    // Local URL Fallback
+                    const cleanPath = file.path.replace(/\\/g, '/').replace('uploads/', '');
+                    thumbnailUrl = `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${cleanPath}`;
+                }
+
+                if (thumbnailUrl) {
+                    updates.push('thumbnail_url = ?');
+                    values.push(thumbnailUrl);
+                }
             }
+
             if (req.files.video && req.files.video[0]) {
                 const file = req.files.video[0];
-                const videoUrl = file.location || `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${file.path.replace(/\\/g, '/').replace('uploads/', '')}`;
-                updates.push('video_url = ?');
-                values.push(videoUrl);
+                let videoUrl = file.location; // S3 URL
+
+                if (!videoUrl && file.path) {
+                    // Local URL Fallback
+                    const cleanPath = file.path.replace(/\\/g, '/').replace('uploads/', '');
+                    videoUrl = `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${cleanPath}`;
+                }
+
+                if (videoUrl) {
+                    updates.push('video_url = ?');
+                    values.push(videoUrl);
+                }
 
                 // Update file size and duration if available
-                updates.push('file_size = ?');
-                values.push(req.files.video[0].size);
+                if (file.size) {
+                    updates.push('file_size = ?');
+                    values.push(file.size);
+                }
             }
         }
 
