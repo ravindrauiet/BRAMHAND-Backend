@@ -61,7 +61,7 @@ const getAllUsers = async (req, res) => {
         const search = req.query.search || '';
 
         let query = `
-            SELECT id, full_name, email, mobile_number, is_creator, is_verified, created_at 
+            SELECT id, full_name, email, mobile_number, is_creator, is_verified, role, created_at 
             FROM users 
         `;
         let countQuery = 'SELECT COUNT(*) as count FROM users';
@@ -123,6 +123,10 @@ const updateUserStatus = async (req, res) => {
         if (isVerified !== undefined) {
             updates.push('is_verified = ?');
             values.push(isVerified);
+        }
+        if (req.body.role !== undefined) {
+            updates.push('role = ?');
+            values.push(req.body.role);
         }
 
         if (updates.length > 0) {
