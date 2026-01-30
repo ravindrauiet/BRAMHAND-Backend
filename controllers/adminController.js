@@ -50,7 +50,7 @@ const getStats = async (req, res) => {
     }
 };
 
-// @desc    Get all users with pagination
+// @desc    Get all users with pagination and search
 // @route   GET /api/admin/users
 // @access  Private/Admin
 const getAllUsers = async (req, res) => {
@@ -58,15 +58,30 @@ const getAllUsers = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
+        const search = req.query.search || '';
 
-        const [users] = await pool.query(`
+        let query = `
             SELECT id, full_name, email, mobile_number, is_creator, is_verified, created_at 
             FROM users 
-            ORDER BY created_at DESC 
-            LIMIT ? OFFSET ?
-        `, [limit, offset]);
+        `;
+        let countQuery = 'SELECT COUNT(*) as count FROM users';
+        let queryParams = [];
+        let countParams = [];
 
-        const [countResult] = await pool.query('SELECT COUNT(*) as count FROM users');
+        if (search) {
+            const searchCreate = `%${search}%`;
+            const whereClause = ' WHERE full_name LIKE ? OR email LIKE ? OR mobile_number LIKE ?';
+            query += whereClause;
+            countQuery += whereClause;
+            queryParams.push(searchCreate, searchCreate, searchCreate);
+            countParams.push(searchCreate, searchCreate, searchCreate);
+        }
+
+        query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+        queryParams.push(limit, offset);
+
+        const [users] = await pool.query(query, queryParams);
+        const [countResult] = await pool.query(countQuery, countParams);
 
         res.json({
             success: true,

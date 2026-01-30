@@ -35,6 +35,7 @@ model User {
   fcmToken        String?   @map("fcm_token")
   isCreator       Boolean   @default(false) @map("is_creator")
   isVerified      Boolean   @default(false) @map("is_verified")
+  role            String    @default("viewer") @map("role") // viewer, creator, employee, subadmin, admin
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
