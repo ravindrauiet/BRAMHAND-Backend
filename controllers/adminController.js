@@ -61,7 +61,7 @@ const getAllUsers = async (req, res) => {
         const search = req.query.search || '';
 
         let query = `
-            SELECT id, full_name, email, mobile_number, is_creator, is_verified, role, created_at 
+            SELECT id, full_name, email, mobile_number, is_creator, is_verified, role, created_at, profile_image 
             FROM users 
         `;
         let countQuery = 'SELECT COUNT(*) as count FROM users';
