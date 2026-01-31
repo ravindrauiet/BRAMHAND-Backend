@@ -112,7 +112,7 @@ const deleteUser = async (req, res) => {
 // @route   PATCH /api/admin/users/:id/status
 const updateUserStatus = async (req, res) => {
     try {
-        const { isCreator, isVerified } = req.body;
+        const { isCreator, isVerified, fullName, email, mobileNumber, role } = req.body;
         const updates = [];
         const values = [];
 
@@ -124,9 +124,21 @@ const updateUserStatus = async (req, res) => {
             updates.push('is_verified = ?');
             values.push(isVerified);
         }
-        if (req.body.role !== undefined) {
+        if (role !== undefined) {
             updates.push('role = ?');
-            values.push(req.body.role);
+            values.push(role);
+        }
+        if (fullName !== undefined) {
+            updates.push('full_name = ?');
+            values.push(fullName);
+        }
+        if (email !== undefined) {
+            updates.push('email = ?');
+            values.push(email);
+        }
+        if (mobileNumber !== undefined) {
+            updates.push('mobile_number = ?');
+            values.push(mobileNumber);
         }
 
         if (updates.length > 0) {
