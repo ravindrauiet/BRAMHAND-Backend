@@ -56,6 +56,9 @@ app.use((err, req, res, next) => {
 });
 
 console.log('Attempting to listen on port ' + PORT);
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// Increase timeout for large video uploads (30 minutes)
+server.timeout = 50 * 60 * 1000;
