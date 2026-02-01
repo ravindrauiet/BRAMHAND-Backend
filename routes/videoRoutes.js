@@ -21,6 +21,7 @@ router.patch('/:id/status', protect, videoController.updateVideoStatus);
 
 // Video Interactions
 router.post('/:id/view', videoController.recordView); // Public but tracks auth if present
+router.post('/:id/progress', protect, videoController.updateWatchProgress);
 router.post('/:id/like', protect, videoController.likeVideo);
 router.delete('/:id/like', protect, videoController.unlikeVideo);
 router.post('/:id/share', protect, videoController.shareVideo);

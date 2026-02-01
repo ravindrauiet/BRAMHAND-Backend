@@ -55,6 +55,7 @@ model User {
   followers       Follows[] @relation("following")
   following       Follows[] @relation("follower")
   createdSeries   Series[]
+  watchlist       Watchlist[]
 
   @@map("users")
 }
@@ -183,6 +184,7 @@ model Video {
   likes         VideoLike[]
   views         VideoView[]
   comments      Comment[]
+  watchlist     Watchlist[]
 
   @@map("videos")
 }
@@ -294,12 +296,13 @@ model VideoLike {
 }
 
 model VideoView {
-  id        Int      @id @default(autoincrement())
-  userId    Int?     @map("user_id") // Optional for anonymous views if we ever allow them, but usually tracked for history
-  videoId   Int      @map("video_id")
-  ipAddress String?  @map("ip_address")
-  device    String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id            Int      @id @default(autoincrement())
+  userId        Int?     @map("user_id") // Optional for anonymous views if we ever allow them, but usually tracked for history
+  videoId       Int      @map("video_id")
+  ipAddress     String?  @map("ip_address")
+  device        String?
+  lastPosition  Int      @default(0) @map("last_position")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
@@ -373,4 +376,16 @@ model Series {
   videos        Video[]
 
   @@map("series")
+}
+
+model Watchlist {
+  userId    Int      @map("user_id")
+  videoId   Int      @map("video_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, videoId])
+  @@map("watchlist")
 }

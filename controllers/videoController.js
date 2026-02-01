@@ -77,6 +77,15 @@ exports.getVideos = async (req, res) => {
             params.push(req.query.is_trending === 'true' || req.query.is_trending === '1' ? 1 : 0);
         }
 
+        // Language Filtering based on user preference
+        if (userId && !category_id && !genre_id && !search && !req.query.is_featured && !req.query.is_trending) {
+            const [prefs] = await pool.query('SELECT content_language FROM user_preferences WHERE user_id = ?', [userId]);
+            if (prefs.length > 0 && prefs[0].content_language) {
+                query += ' AND v.language = ?';
+                params.push(prefs[0].content_language);
+            }
+        }
+
 
         query += ' ORDER BY v.created_at DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
@@ -167,8 +176,29 @@ exports.getVideoById = async (req, res) => {
         const video = videos[0];
         if (userId) {
             video.is_liked = !!video.is_liked;
+
+            // Check Watchlist
+            const [watchlist] = await pool.query('SELECT 1 FROM watchlist WHERE user_id = ? AND video_id = ?', [userId, id]);
+            video.is_in_watchlist = watchlist.length > 0;
+
+            // Get last watch position
+            const [progress] = await pool.query('SELECT last_position FROM video_views WHERE user_id = ? AND video_id = ? ORDER BY created_at DESC LIMIT 1', [userId, id]);
+            video.last_position = progress.length > 0 ? progress[0].last_position : 0;
         } else {
             video.is_liked = false;
+            video.is_in_watchlist = false;
+            video.last_position = 0;
+        }
+
+        // Auto-Play: Get Next Episode if part of series
+        if (video.series_id && video.episode_number) {
+            const [next] = await pool.query(
+                'SELECT id FROM videos WHERE series_id = ? AND episode_number = ? AND is_active = TRUE LIMIT 1',
+                [video.series_id, video.episode_number + 1]
+            );
+            if (next.length > 0) {
+                video.next_video_id = next[0].id;
+            }
         }
 
         res.json({ video });
@@ -307,8 +337,13 @@ exports.recordView = async (req, res) => {
 
         // 2. Log History if User is Authenticated
         if (authenticatedUserId) {
-            // Check existence logic could be better but insert is fine for history log
-            await pool.query('INSERT INTO video_views (user_id, video_id, created_at) VALUES (?, ?, NOW())', [authenticatedUserId, id]);
+            // Update or Create view record
+            const [existing] = await pool.query('SELECT id FROM video_views WHERE user_id = ? AND video_id = ?', [authenticatedUserId, id]);
+            if (existing.length > 0) {
+                await pool.query('UPDATE video_views SET created_at = NOW() WHERE id = ?', [existing[0].id]);
+            } else {
+                await pool.query('INSERT INTO video_views (user_id, video_id, created_at) VALUES (?, ?, NOW())', [authenticatedUserId, id]);
+            }
         }
 
         res.json({ success: true });
@@ -592,6 +627,31 @@ exports.getMyContent = async (req, res) => {
         res.json({ success: true, videos });
     } catch (error) {
         console.error('Get my content error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+// @desc    Update watch progress
+// @route   POST /api/videos/:id/progress
+exports.updateWatchProgress = async (req, res) => {
+    try {
+        const videoId = req.params.id;
+        const userId = req.user.id;
+        const { position } = req.body; // In seconds or milliseconds
+
+        if (position === undefined) {
+            return res.status(400).json({ success: false, message: 'Position is required' });
+        }
+
+        // Update last_position in video_views
+        // We look for the most recent view entry for this user and video
+        await pool.query(
+            'UPDATE video_views SET last_position = ?, created_at = NOW() WHERE user_id = ? AND video_id = ? ORDER BY created_at DESC LIMIT 1',
+            [position, userId, videoId]
+        );
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Update Progress Error:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
