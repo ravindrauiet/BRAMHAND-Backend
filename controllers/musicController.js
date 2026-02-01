@@ -125,7 +125,7 @@ exports.createPlaylist = async (req, res) => {
         const { name, is_public } = req.body;
 
         const [result] = await pool.query(
-            'INSERT INTO playlists (user_id, name, is_public, created_at) VALUES (?, ?, ?, NOW())',
+            'INSERT INTO playlists (user_id, name, is_public, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
             [userId, name, is_public ? 1 : 0]
         );
         res.json({ success: true, id: result.insertId });
