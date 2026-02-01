@@ -187,8 +187,7 @@ const updateVideo = async (req, res) => {
                 const file = req.files.thumbnail[0];
                 let thumbnailUrl = file.location; // S3 URL
 
-                if (!thumbnailUrl && file.path) {
-                    // Local URL Fallback
+                if (!thumbnailUrl && file?.path) {
                     const cleanPath = file.path.replace(/\\/g, '/').replace('uploads/', '');
                     thumbnailUrl = `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${cleanPath}`;
                 }
@@ -203,8 +202,7 @@ const updateVideo = async (req, res) => {
                 const file = req.files.video[0];
                 let videoUrl = file.location; // S3 URL
 
-                if (!videoUrl && file.path) {
-                    // Local URL Fallback
+                if (!videoUrl && file?.path) {
                     const cleanPath = file.path.replace(/\\/g, '/').replace('uploads/', '');
                     videoUrl = `${process.env.API_BASE_URL || 'http://localhost:5000'}/uploads/${cleanPath}`;
                 }
