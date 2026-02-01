@@ -19,7 +19,7 @@ exports.getProfile = async (req, res) => {
                     is_creator: 1,
                     preferences: {},
                     creatorProfile: { bio: 'Dev Admin' },
-                    _count: { followers: 100, following: 10 }
+                    _count: { followers: 1250, following: 156, total_views: 45800, total_likes: 12400, playlists: 12 }
                 }
             });
         }
@@ -41,12 +41,21 @@ exports.getProfile = async (req, res) => {
         const [followers] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE following_id = ?', [userId]);
         const [following] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [userId]);
 
+        // Stats for Creator Dashboard
+        const [videoStats] = await pool.query('SELECT SUM(views_count) as total_views, SUM(likes_count) as total_likes FROM videos WHERE creator_id = ?', [userId]);
+        const [playlistCount] = await pool.query('SELECT COUNT(*) as count FROM playlists WHERE user_id = ?', [userId]);
+        const [actualPlaylists] = await pool.query('SELECT id, name, is_public FROM playlists WHERE user_id = ?', [userId]);
+
         const user = users[0];
         user.preferences = prefs[0] || {};
         user.creatorProfile = creator[0] || null;
+        user.playlists = actualPlaylists;
         user._count = {
-            followers: followers[0].count,
-            following: following[0].count
+            followers: followers[0].count || 0,
+            following: following[0].count || 0,
+            total_views: parseInt(videoStats[0].total_views || 0),
+            total_likes: parseInt(videoStats[0].total_likes || 0),
+            playlists: playlistCount[0].count || 0
         };
 
         res.json({ user });

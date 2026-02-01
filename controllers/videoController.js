@@ -329,7 +329,13 @@ exports.recordView = async (req, res) => {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
                 authenticatedUserId = decoded.id;
             } catch (e) {
+                console.error('recordView Auth Error:', e.message);
             }
+        }
+
+        // Fallback for dev/dashboard which often passes x-user-id
+        if (!authenticatedUserId && req.headers['x-user-id']) {
+            authenticatedUserId = parseInt(req.headers['x-user-id']);
         }
 
         // 1. Increment View Count
