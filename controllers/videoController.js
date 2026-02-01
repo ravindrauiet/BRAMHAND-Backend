@@ -613,7 +613,14 @@ exports.getMyContent = async (req, res) => {
         const { type } = req.query; // 'VIDEO' or 'REEL' or undefined for all
 
         let query = `
-            SELECT v.*, c.name as categoryName
+            SELECT v.*, 
+                   v.video_url as videoUrl,
+                   v.thumbnail_url as thumbnailUrl,
+                   v.is_active as isActive,
+                   v.views_count as viewsCount,
+                   v.likes_count as likesCount,
+                   v.shares_count as sharesCount,
+                   c.name as categoryName
             FROM videos v
             LEFT JOIN video_categories c ON v.category_id = c.id
             WHERE v.creator_id = ?
