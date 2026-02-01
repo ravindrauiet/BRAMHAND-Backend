@@ -593,8 +593,8 @@ exports.deleteVideoByOwner = async (req, res) => {
         // Delete video and related data (cascade should handle this, but explicit is better)
         await pool.query('DELETE FROM video_likes WHERE video_id = ?', [videoId]);
         await pool.query('DELETE FROM video_views WHERE video_id = ?', [videoId]);
-        await pool.query('DELETE FROM video_comments WHERE video_id = ?', [videoId]);
-        await pool.query('DELETE FROM video_shares WHERE video_id = ?', [videoId]);
+        await pool.query('DELETE FROM comments WHERE video_id = ?', [videoId]);
+        await pool.query('DELETE FROM watchlist WHERE video_id = ?', [videoId]);
         await pool.query('DELETE FROM videos WHERE id = ?', [videoId]);
 
         res.json({ success: true, message: 'Video deleted successfully' });
