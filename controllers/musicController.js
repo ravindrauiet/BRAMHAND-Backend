@@ -125,11 +125,12 @@ exports.createPlaylist = async (req, res) => {
         const { name, is_public } = req.body;
 
         const [result] = await pool.query(
-            'INSERT INTO playlists (user_id, name, is_public) VALUES (?, ?, ?)',
+            'INSERT INTO playlists (user_id, name, is_public, created_at) VALUES (?, ?, ?, NOW())',
             [userId, name, is_public ? 1 : 0]
         );
         res.json({ success: true, id: result.insertId });
     } catch (error) {
+        console.error('createPlaylist error:', error);
         res.status(500).json({ error: 'Failed' });
     }
 };
