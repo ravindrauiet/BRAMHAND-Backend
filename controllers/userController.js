@@ -115,6 +115,19 @@ exports.getWatchHistory = async (req, res) => {
     }
 };
 
+exports.removeFromWatchHistory = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { viewId } = req.params;
+
+        await pool.query('DELETE FROM video_views WHERE id = ? AND user_id = ?', [viewId, userId]);
+        res.json({ success: true, message: 'Removed from history' });
+    } catch (error) {
+        console.error('Remove from history error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 exports.followUser = async (req, res) => {
     try {
         const followerId = req.user.id;

@@ -8,6 +8,7 @@ router.get('/profile', protect, userController.getProfile);
 router.put('/preferences', protect, userController.updatePreferences);
 
 router.get('/history', protect, userController.getWatchHistory);
+router.delete('/history/:viewId', protect, userController.removeFromWatchHistory);
 
 // Social Graph
 router.post('/:id/follow', protect, userController.followUser);
