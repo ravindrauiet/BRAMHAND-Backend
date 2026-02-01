@@ -16,6 +16,7 @@ router.delete('/songs/:id/like', protect, musicController.unlikeSong);
 router.post('/playlists', protect, musicController.createPlaylist);
 router.get('/my-playlists', protect, musicController.getMyPlaylists);
 router.post('/playlists/add', protect, musicController.addToPlaylist);
+router.delete('/playlists/:id', protect, musicController.deletePlaylist);
 
 
 module.exports = router;

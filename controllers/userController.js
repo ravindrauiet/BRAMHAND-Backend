@@ -90,7 +90,7 @@ exports.getWatchHistory = async (req, res) => {
         const offset = (page - 1) * limit;
 
         const [history] = await pool.query(`
-            SELECT v.*, u.full_name as creator_name, vv.created_at as viewed_at, vv.last_position
+            SELECT vv.id as view_id, v.*, u.full_name as creator_name, vv.created_at as viewed_at, vv.last_position
             FROM video_views vv
             JOIN videos v ON vv.video_id = v.id
             JOIN users u ON v.creator_id = u.id

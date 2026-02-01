@@ -62,10 +62,12 @@ exports.getWatchlist = async (req, res) => {
         const offset = (page - 1) * limit;
 
         const [videos] = await pool.query(
-            `SELECT v.*, u.full_name as creator_name, w.created_at as added_at
+            `SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, 
+                    c.name as category_name, w.created_at as added_at
              FROM watchlist w
              JOIN videos v ON w.video_id = v.id
              JOIN users u ON v.creator_id = u.id
+             LEFT JOIN video_categories c ON v.category_id = c.id
              WHERE w.user_id = ?
              ORDER BY w.created_at DESC
              LIMIT ? OFFSET ?`,

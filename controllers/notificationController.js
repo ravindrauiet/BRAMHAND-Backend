@@ -38,3 +38,34 @@ exports.registerToken = async (req, res) => {
         res.status(500).json({ error: 'Failed to register token' });
     }
 };
+
+exports.broadcastNotification = async (req, res) => {
+    try {
+        const { title, message } = req.body;
+        // Demo: Target first 5 users
+        const [users] = await pool.query('SELECT id FROM users LIMIT 5');
+
+        for (const user of users) {
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [user.id, title, message, 'SYSTEM']
+            );
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Broadcast Error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+exports.getSystemNotifications = async (req, res) => {
+    try {
+        const [notifs] = await pool.query(
+            'SELECT DISTINCT title, message, created_at, type FROM notifications WHERE type = "SYSTEM" ORDER BY created_at DESC LIMIT 20'
+        );
+        res.json({ notifications: notifs });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed' });
+    }
+};

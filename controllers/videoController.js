@@ -630,6 +630,7 @@ exports.getMyContent = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
 // @desc    Update watch progress
 // @route   POST /api/videos/:id/progress
 exports.updateWatchProgress = async (req, res) => {
@@ -652,6 +653,36 @@ exports.updateWatchProgress = async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Update Progress Error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Delete a comment
+// @route   DELETE /api/videos/comments/:commentId
+exports.deleteComment = async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const userId = req.user.id;
+
+        // Verify ownership
+        const [comment] = await pool.query('SELECT user_id, video_id FROM comments WHERE id = ?', [commentId]);
+
+        if (comment.length === 0) {
+            return res.status(404).json({ success: false, message: 'Comment not found' });
+        }
+
+        if (comment[0].user_id !== userId) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        await pool.query('DELETE FROM comments WHERE id = ?', [commentId]);
+
+        // Decrement count
+        await pool.query('UPDATE videos SET comments_count = GREATEST(comments_count - 1, 0) WHERE id = ?', [comment[0].video_id]);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete Comment Error:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };

@@ -46,17 +46,24 @@ exports.getGenres = async (req, res) => {
 exports.getPlaylists = async (req, res) => {
     try {
         const { user_id } = req.query;
-        let query = 'SELECT * FROM playlists WHERE is_public = TRUE';
+        let query = `
+            SELECT p.*, u.full_name as user_name,
+            (SELECT COUNT(*) FROM playlist_songs WHERE playlist_id = p.id) as song_count
+            FROM playlists p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.is_public = TRUE
+        `;
         const params = [];
 
         if (user_id) {
-            query += ' OR user_id = ?'; // Public OR owned
+            query += ' OR p.user_id = ?';
             params.push(user_id);
         }
 
         const [playlists] = await pool.query(query, params);
         res.json({ playlists });
     } catch (error) {
+        console.error('getPlaylists error:', error);
         res.status(500).json({ error: 'Failed' });
     }
 };
@@ -148,8 +155,36 @@ exports.addToPlaylist = async (req, res) => {
 exports.getMyPlaylists = async (req, res) => {
     try {
         const userId = req.user.id;
-        const [playlists] = await pool.query('SELECT * FROM playlists WHERE user_id = ? ORDER BY created_at DESC', [userId]);
+        const [playlists] = await pool.query(`
+            SELECT p.*, 
+            (SELECT COUNT(*) FROM playlist_songs WHERE playlist_id = p.id) as song_count
+            FROM playlists p
+            WHERE p.user_id = ? 
+            ORDER BY p.created_at DESC
+        `, [userId]);
         res.json({ playlists });
+    } catch (error) {
+        console.error('getMyPlaylists error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+exports.deletePlaylist = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        // Verify ownership (unless admin, but for now owner)
+        const [playlist] = await pool.query('SELECT user_id FROM playlists WHERE id = ?', [id]);
+        if (playlist.length === 0) return res.status(404).json({ error: 'Not found' });
+
+        // Check if admin or owner
+        if (playlist[0].user_id !== userId && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        await pool.query('DELETE FROM playlists WHERE id = ?', [id]);
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Failed' });
     }

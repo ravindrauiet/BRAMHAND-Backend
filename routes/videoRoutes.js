@@ -27,5 +27,6 @@ router.delete('/:id/like', protect, videoController.unlikeVideo);
 router.post('/:id/share', protect, videoController.shareVideo);
 router.get('/:id/comments', videoController.getComments);
 router.post('/:id/comments', protect, videoController.addComment);
+router.delete('/comments/:commentId', protect, videoController.deleteComment);
 
 module.exports = router;
