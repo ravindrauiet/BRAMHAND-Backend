@@ -159,6 +159,39 @@ model Video {
   
   duration      Int?
   fileSize      BigInt?       @map("file_size")
+  cast          Json?         // Cast members as JSON array
+  crew          Json?         // Crew members as JSON array
+  
+  // Advanced Metadata (Netflix/Amazon style)
+  tags          Json?         // Tags/Keywords for search & filtering as JSON array
+  releaseDate   DateTime?     @map("release_date") // Original release date
+  releaseYear   Int?          @map("release_year") // For year-based filtering
+  trailerUrl    String?       @map("trailer_url") @db.VarChar(512) // Trailer video URL
+  
+  rating        Decimal?      @db.Decimal(3, 1) // User rating (e.g., 8.5 out of 10)
+  maturityRating String?      @map("maturity_rating") @db.VarChar(20) // TV-MA, TV-14, etc.
+  
+  country       String?       @db.VarChar(100) // Country of origin
+  productionCompany String?   @map("production_company") @db.VarChar(255)
+  director      String?       @db.VarChar(255) // Primary director (can also be in crew)
+  awards        String?       @db.Text // Awards and nominations
+  
+  subtitles     Json?         // Available subtitle languages as JSON array
+  audioLanguages Json?        @map("audio_languages") // Available audio tracks as JSON array
+  videoQuality  String?       @map("video_quality") @db.VarChar(20) // SD, HD, FHD, 4K, 8K
+  
+  // SEO & Social Media Metadata
+  slug          String?       @unique @db.VarChar(255) // URL-friendly identifier (e.g., "inception-2010")
+  seoTitle      String?       @map("seo_title") @db.VarChar(255) // Custom SEO title (Meta title)
+  seoDescription String?      @map("seo_description") @db.VarChar(500) // Meta description for search results
+  seoKeywords   String?       @map("seo_keywords") @db.VarChar(500) // Meta keywords (comma-separated)
+  
+  ogImage       String?       @map("og_image") @db.VarChar(512) // Open Graph image for social sharing
+  ogTitle       String?       @map("og_title") @db.VarChar(255) // Custom title for social media
+  ogDescription String?       @map("og_description") @db.VarChar(500) // Custom description for social media
+  
+  canonicalUrl  String?       @map("canonical_url") @db.VarChar(512) // Canonical URL to avoid duplicate content
+  structuredData Json?        @map("structured_data") // Schema.org VideoObject JSON-LD for rich snippets
   
   viewsCount    Int           @default(0) @map("views_count")
   likesCount    Int           @default(0) @map("likes_count")
