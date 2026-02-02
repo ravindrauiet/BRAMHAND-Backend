@@ -233,7 +233,29 @@ exports.uploadVideo = async (req, res) => {
             is_trending = false,
             duration,
             cast,
-            crew
+            crew,
+            // Netflix-style fields
+            tags,
+            releaseDate,
+            releaseYear,
+            trailerUrl,
+            rating,
+            maturityRating,
+            country,
+            productionCompany,
+            director,
+            awards,
+            subtitles,
+            audioLanguages,
+            videoQuality,
+            // SEO fields
+            slug,
+            seoTitle,
+            seoDescription,
+            seoKeywords,
+            ogImage,
+            ogTitle,
+            ogDescription
         } = req.body;
 
         // Get creator_id from authenticated user (NOT from request body for security)
@@ -291,6 +313,55 @@ exports.uploadVideo = async (req, res) => {
             }
         }
 
+        // Parse other JSON fields
+        let tagsData = null;
+        let subtitlesData = null;
+        let audioLanguagesData = null;
+
+        if (tags) {
+            try {
+                tagsData = typeof tags === 'string' ? JSON.parse(tags) : tags;
+            } catch (e) {
+                console.error('Error parsing tags:', e);
+            }
+        }
+
+        if (subtitles) {
+            try {
+                subtitlesData = typeof subtitles === 'string' ? JSON.parse(subtitles) : subtitles;
+            } catch (e) {
+                console.error('Error parsing subtitles:', e);
+            }
+        }
+
+        if (audioLanguages) {
+            try {
+                audioLanguagesData = typeof audioLanguages === 'string' ? JSON.parse(audioLanguages) : audioLanguages;
+            } catch (e) {
+                console.error('Error parsing audioLanguages:', e);
+            }
+        }
+
+        // Auto-generate SEO fields if not provided
+        const { generateSlug, generateSeoTitle, generateSeoDescription, generateStructuredData } = require('../utils/seoGenerator');
+
+        const finalSlug = slug || generateSlug(title, releaseYear);
+        const finalSeoTitle = seoTitle || generateSeoTitle({ title, releaseYear, videoQuality, type });
+        const finalSeoDescription = seoDescription || generateSeoDescription({
+            title, releaseYear, description, cast: castData, director, videoQuality, audioLanguages: audioLanguagesData
+        });
+        const finalOgImage = ogImage || thumbnail_url;
+        const finalOgTitle = ogTitle || finalSeoTitle;
+        const finalOgDescription = ogDescription || finalSeoDescription;
+        const canonicalUrl = `https://tirhuta.com/watch/${finalSlug}`;
+
+        // Generate structured data
+        const structuredDataObj = generateStructuredData({
+            title, description, thumbnailUrl: thumbnail_url, createdAt: new Date(), duration,
+            slug: finalSlug, rating, director, cast: castData, tags: tagsData,
+            productionCompany, videoQuality, language, releaseDate, viewsCount: 0
+        });
+
         // Insert with all required fields and proper defaults
         const [result] = await pool.query(
             `INSERT INTO videos (
@@ -298,8 +369,13 @@ exports.uploadVideo = async (req, res) => {
                 category_id, genre_id, creator_id, type, language, content_rating,
                 is_active, is_featured, is_trending,
                 duration, file_size, cast, crew,
+                tags, release_date, release_year, trailer_url,
+                rating, maturity_rating, country, production_company,
+                director, awards, subtitles, audio_languages, video_quality,
+                slug, seo_title, seo_description, seo_keywords,
+                og_image, og_title, og_description, canonical_url, structured_data,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
@@ -317,7 +393,29 @@ exports.uploadVideo = async (req, res) => {
                 duration || null,
                 file_size || null,
                 castData ? JSON.stringify(castData) : null,
-                crewData ? JSON.stringify(crewData) : null
+                crewData ? JSON.stringify(crewData) : null,
+                tagsData ? JSON.stringify(tagsData) : null,
+                releaseDate || null,
+                releaseYear || null,
+                trailerUrl || null,
+                rating || null,
+                maturityRating || null,
+                country || null,
+                productionCompany || null,
+                director || null,
+                awards || null,
+                subtitlesData ? JSON.stringify(subtitlesData) : null,
+                audioLanguagesData ? JSON.stringify(audioLanguagesData) : null,
+                videoQuality || null,
+                finalSlug,
+                finalSeoTitle,
+                finalSeoDescription,
+                seoKeywords || null,
+                finalOgImage,
+                finalOgTitle,
+                finalOgDescription,
+                canonicalUrl,
+                JSON.stringify(structuredDataObj)
             ]
         );
 

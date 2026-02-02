@@ -86,7 +86,29 @@ const uploadVideo = async (req, res) => {
             seasonNumber = 1,
             duration,
             cast,
-            crew
+            crew,
+            // Netflix-style fields
+            tags,
+            releaseDate,
+            releaseYear,
+            trailerUrl,
+            rating,
+            maturityRating,
+            country,
+            productionCompany,
+            director,
+            awards,
+            subtitles,
+            audioLanguages,
+            videoQuality,
+            // SEO fields
+            slug,
+            seoTitle,
+            seoDescription,
+            seoKeywords,
+            ogImage,
+            ogTitle,
+            ogDescription
         } = req.body;
 
         let videoUrl = null;
@@ -130,6 +152,56 @@ const uploadVideo = async (req, res) => {
             }
         }
 
+        // Parse other JSON fields
+        let tagsData = null;
+        let subtitlesData = null;
+        let audioLanguagesData = null;
+
+        if (tags) {
+            try {
+                tagsData = typeof tags === 'string' ? JSON.parse(tags) : tags;
+            } catch (e) {
+                console.error('Error parsing tags:', e);
+            }
+        }
+
+        if (subtitles) {
+            try {
+                subtitlesData = typeof subtitles === 'string' ? JSON.parse(subtitles) : subtitles;
+            } catch (e) {
+                console.error('Error parsing subtitles:', e);
+            }
+        }
+
+        if (audioLanguages) {
+            try {
+                audioLanguagesData = typeof audioLanguages === 'string' ? JSON.parse(audioLanguages) : audioLanguages;
+            } catch (e) {
+                console.error('Error parsing audioLanguages:', e);
+            }
+        }
+
+        // Auto-generate SEO fields if not provided
+        const { generateSlug, generateSeoTitle, generateSeoDescription, generateStructuredData } = require('../utils/seoGenerator');
+
+        const finalSlug = slug || generateSlug(title, releaseYear);
+        const finalSeoTitle = seoTitle || generateSeoTitle({ title, releaseYear, videoQuality, type });
+        const finalSeoDescription = seoDescription || generateSeoDescription({
+            title, releaseYear, description, cast: castData, director, videoQuality, audioLanguages: audioLanguagesData
+        });
+        const finalOgImage = ogImage || thumbnailUrl;
+        const finalOgTitle = ogTitle || finalSeoTitle;
+        const finalOgDescription = ogDescription || finalSeoDescription;
+        const canonicalUrl = `https://tirhuta.com/watch/${finalSlug}`;
+
+        // Generate structured data
+        const structuredDataObj = generateStructuredData({
+            title, description, thumbnailUrl, createdAt: new Date(), duration,
+            slug: finalSlug, rating, director, cast: castData, tags: tagsData,
+            productionCompany, videoQuality, language, releaseDate, viewsCount: 0
+        });
+
+
         // Insert video into database
         const [result] = await pool.query(
             `INSERT INTO videos (
@@ -138,8 +210,13 @@ const uploadVideo = async (req, res) => {
                 is_active, is_trending, is_featured,
                 series_id, episode_number, season_number,
                 duration, file_size, cast, crew,
+                tags, release_date, release_year, trailer_url,
+                rating, maturity_rating, country, production_company,
+                director, awards, subtitles, audio_languages, video_quality,
+                slug, seo_title, seo_description, seo_keywords,
+                og_image, og_title, og_description, canonical_url, structured_data,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
@@ -160,13 +237,36 @@ const uploadVideo = async (req, res) => {
                 duration || null,
                 fileSize || null,
                 castData ? JSON.stringify(castData) : null,
-                crewData ? JSON.stringify(crewData) : null
+                crewData ? JSON.stringify(crewData) : null,
+                tagsData ? JSON.stringify(tagsData) : null,
+                releaseDate || null,
+                releaseYear || null,
+                trailerUrl || null,
+                rating || null,
+                maturityRating || null,
+                country || null,
+                productionCompany || null,
+                director || null,
+                awards || null,
+                subtitlesData ? JSON.stringify(subtitlesData) : null,
+                audioLanguagesData ? JSON.stringify(audioLanguagesData) : null,
+                videoQuality || null,
+                finalSlug,
+                finalSeoTitle,
+                finalSeoDescription,
+                seoKeywords || null,
+                finalOgImage,
+                finalOgTitle,
+                finalOgDescription,
+                canonicalUrl,
+                JSON.stringify(structuredDataObj)
             ]
         );
 
         res.json({
             success: true,
             id: result.insertId,
+            slug: finalSlug,
             videoUrl,
             thumbnailUrl,
             message: 'Video uploaded successfully'
@@ -195,7 +295,12 @@ const updateVideo = async (req, res) => {
         const {
             title, description, categoryId, genreId, creatorId, language,
             contentRating, type, isActive, isTrending, isFeatured,
-            seriesId, episodeNumber, seasonNumber, duration, cast, crew
+            seriesId, episodeNumber, seasonNumber, duration, cast, crew,
+            // Netflix-style fields
+            tags, releaseDate, releaseYear, trailerUrl, rating, maturityRating,
+            country, productionCompany, director, awards, subtitles, audioLanguages, videoQuality,
+            // SEO fields
+            slug, seoTitle, seoDescription, seoKeywords, ogImage, ogTitle, ogDescription
         } = req.body;
 
         const updates = [];
@@ -235,6 +340,58 @@ const updateVideo = async (req, res) => {
                 console.error('Error parsing crew:', e);
             }
         }
+
+        // Netflix-style fields
+        if (tags !== undefined) {
+            try {
+                const tagsData = typeof tags === 'string' ? JSON.parse(tags) : tags;
+                updates.push('tags = ?');
+                values.push(tagsData ? JSON.stringify(tagsData) : null);
+            } catch (e) {
+                console.error('Error parsing tags:', e);
+            }
+        }
+
+        if (releaseDate !== undefined) { updates.push('release_date = ?'); values.push(releaseDate || null); }
+        if (releaseYear !== undefined) { updates.push('release_year = ?'); values.push(releaseYear || null); }
+        if (trailerUrl !== undefined) { updates.push('trailer_url = ?'); values.push(trailerUrl || null); }
+        if (rating !== undefined) { updates.push('rating = ?'); values.push(rating || null); }
+        if (maturityRating !== undefined) { updates.push('maturity_rating = ?'); values.push(maturityRating || null); }
+        if (country !== undefined) { updates.push('country = ?'); values.push(country || null); }
+        if (productionCompany !== undefined) { updates.push('production_company = ?'); values.push(productionCompany || null); }
+        if (director !== undefined) { updates.push('director = ?'); values.push(director || null); }
+        if (awards !== undefined) { updates.push('awards = ?'); values.push(awards || null); }
+        if (videoQuality !== undefined) { updates.push('video_quality = ?'); values.push(videoQuality || null); }
+
+        if (subtitles !== undefined) {
+            try {
+                const subtitlesData = typeof subtitles === 'string' ? JSON.parse(subtitles) : subtitles;
+                updates.push('subtitles = ?');
+                values.push(subtitlesData ? JSON.stringify(subtitlesData) : null);
+            } catch (e) {
+                console.error('Error parsing subtitles:', e);
+            }
+        }
+
+        if (audioLanguages !== undefined) {
+            try {
+                const audioLanguagesData = typeof audioLanguages === 'string' ? JSON.parse(audioLanguages) : audioLanguages;
+                updates.push('audio_languages = ?');
+                values.push(audioLanguagesData ? JSON.stringify(audioLanguagesData) : null);
+            } catch (e) {
+                console.error('Error parsing audioLanguages:', e);
+            }
+        }
+
+        // SEO fields
+        if (slug !== undefined) { updates.push('slug = ?'); values.push(slug || null); }
+        if (seoTitle !== undefined) { updates.push('seo_title = ?'); values.push(seoTitle || null); }
+        if (seoDescription !== undefined) { updates.push('seo_description = ?'); values.push(seoDescription || null); }
+        if (seoKeywords !== undefined) { updates.push('seo_keywords = ?'); values.push(seoKeywords || null); }
+        if (ogImage !== undefined) { updates.push('og_image = ?'); values.push(ogImage || null); }
+        if (ogTitle !== undefined) { updates.push('og_title = ?'); values.push(ogTitle || null); }
+        if (ogDescription !== undefined) { updates.push('og_description = ?'); values.push(ogDescription || null); }
+
 
         // Handle file uploads (if new thumbnail/video provided)
         if (req.files) {
