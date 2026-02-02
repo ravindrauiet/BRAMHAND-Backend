@@ -73,6 +73,7 @@ const uploadVideo = async (req, res) => {
             title,
             description,
             categoryId,
+            genreId,
             creatorId,
             language = 'Hindi',
             contentRating = 'U',
@@ -82,16 +83,21 @@ const uploadVideo = async (req, res) => {
             isFeatured = 'false',
             seriesId = null,
             episodeNumber = null,
-            seasonNumber = 1
+            seasonNumber = 1,
+            duration,
+            cast,
+            crew
         } = req.body;
 
         let videoUrl = null;
         let thumbnailUrl = null;
+        let fileSize = null;
 
         // Get uploaded file URLs from multer-s3
         if (req.files) {
             if (req.files.video && req.files.video[0]) {
                 videoUrl = req.files.video[0].location; // S3 URL
+                fileSize = req.files.video[0].size; // File size in bytes
             }
             if (req.files.thumbnail && req.files.thumbnail[0]) {
                 thumbnailUrl = req.files.thumbnail[0].location; // S3 URL
@@ -104,21 +110,43 @@ const uploadVideo = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Video file is required' });
         }
 
+        // Parse cast and crew if they're strings (from form data)
+        let castData = null;
+        let crewData = null;
+
+        if (cast) {
+            try {
+                castData = typeof cast === 'string' ? JSON.parse(cast) : cast;
+            } catch (e) {
+                console.error('Error parsing cast:', e);
+            }
+        }
+
+        if (crew) {
+            try {
+                crewData = typeof crew === 'string' ? JSON.parse(crew) : crew;
+            } catch (e) {
+                console.error('Error parsing crew:', e);
+            }
+        }
+
         // Insert video into database
         const [result] = await pool.query(
             `INSERT INTO videos (
                 title, description, video_url, thumbnail_url, 
-                category_id, creator_id, language, content_rating, type,
+                category_id, genre_id, creator_id, language, content_rating, type,
                 is_active, is_trending, is_featured,
                 series_id, episode_number, season_number,
+                duration, file_size, cast, crew,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
                 videoUrl,
                 thumbnailUrl || null,
                 categoryId,
+                genreId || null,
                 creatorId,
                 language,
                 contentRating,
@@ -128,7 +156,11 @@ const uploadVideo = async (req, res) => {
                 isFeatured === 'true' || isFeatured === true ? 1 : 0,
                 seriesId || null,
                 episodeNumber || null,
-                seasonNumber || 1
+                seasonNumber || 1,
+                duration || null,
+                fileSize || null,
+                castData ? JSON.stringify(castData) : null,
+                crewData ? JSON.stringify(crewData) : null
             ]
         );
 
@@ -161,9 +193,9 @@ const updateVideo = async (req, res) => {
     try {
         const { id } = req.params;
         const {
-            title, description, categoryId, creatorId, language,
+            title, description, categoryId, genreId, creatorId, language,
             contentRating, type, isActive, isTrending, isFeatured,
-            seriesId, episodeNumber, seasonNumber
+            seriesId, episodeNumber, seasonNumber, duration, cast, crew
         } = req.body;
 
         const updates = [];
@@ -173,6 +205,7 @@ const updateVideo = async (req, res) => {
         if (title !== undefined) { updates.push('title = ?'); values.push(title); }
         if (description !== undefined) { updates.push('description = ?'); values.push(description); }
         if (categoryId !== undefined) { updates.push('category_id = ?'); values.push(categoryId); }
+        if (genreId !== undefined) { updates.push('genre_id = ?'); values.push(genreId || null); }
         if (creatorId !== undefined) { updates.push('creator_id = ?'); values.push(creatorId); }
         if (language !== undefined) { updates.push('language = ?'); values.push(language); }
         if (contentRating !== undefined) { updates.push('content_rating = ?'); values.push(contentRating); }
@@ -180,6 +213,28 @@ const updateVideo = async (req, res) => {
         if (isActive !== undefined) { updates.push('is_active = ?'); values.push(isActive === 'true' || isActive === true ? 1 : 0); }
         if (isTrending !== undefined) { updates.push('is_trending = ?'); values.push(isTrending === 'true' || isTrending === true ? 1 : 0); }
         if (isFeatured !== undefined) { updates.push('is_featured = ?'); values.push(isFeatured === 'true' || isFeatured === true ? 1 : 0); }
+        if (duration !== undefined) { updates.push('duration = ?'); values.push(duration || null); }
+
+        // Parse and update cast/crew
+        if (cast !== undefined) {
+            try {
+                const castData = typeof cast === 'string' ? JSON.parse(cast) : cast;
+                updates.push('cast = ?');
+                values.push(castData ? JSON.stringify(castData) : null);
+            } catch (e) {
+                console.error('Error parsing cast:', e);
+            }
+        }
+
+        if (crew !== undefined) {
+            try {
+                const crewData = typeof crew === 'string' ? JSON.parse(crew) : crew;
+                updates.push('crew = ?');
+                values.push(crewData ? JSON.stringify(crewData) : null);
+            } catch (e) {
+                console.error('Error parsing crew:', e);
+            }
+        }
 
         // Handle file uploads (if new thumbnail/video provided)
         if (req.files) {

@@ -7,6 +7,7 @@ const upload = require('../middleware/upload');
 // Public routes - SPECIFIC ROUTES MUST COME BEFORE /:id
 router.get('/', videoController.getVideos);
 router.get('/categories', videoController.getPublicCategories);
+router.get('/genres', videoController.getPublicGenres);
 router.get('/trending', videoController.getTrending);
 
 // Content Management (Protected) - MUST BE BEFORE /:id

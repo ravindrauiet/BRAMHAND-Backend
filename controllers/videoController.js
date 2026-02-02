@@ -132,6 +132,16 @@ exports.getPublicCategories = async (req, res) => {
     }
 };
 
+exports.getPublicGenres = async (req, res) => {
+    try {
+        const [genres] = await pool.query('SELECT * FROM video_genres WHERE is_active = TRUE ORDER BY name ASC');
+        res.json({ genres });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
 exports.getVideoById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -213,13 +223,17 @@ exports.uploadVideo = async (req, res) => {
         const {
             title,
             category_id,
+            genre_id,
             type = 'VIDEO',
             description,
             language = 'Hindi',
             content_rating = 'U',
             is_active = true,
             is_featured = false,
-            is_trending = false
+            is_trending = false,
+            duration,
+            cast,
+            crew
         } = req.body;
 
         // Get creator_id from authenticated user (NOT from request body for security)
@@ -239,12 +253,14 @@ exports.uploadVideo = async (req, res) => {
 
         let video_url = req.body.video_url; // Allow URL if provided (legacy support)
         let thumbnail_url = req.body.thumbnail_url;
+        let file_size = null;
 
         // If files are uploaded via Multer S3
         console.log('🔍 req.files:', JSON.stringify(req.files, null, 2));
         if (req.files) {
             if (req.files.video && req.files.video[0]) {
                 video_url = req.files.video[0].location; // S3 URL
+                file_size = req.files.video[0].size; // File size in bytes
             }
             if (req.files.thumbnail && req.files.thumbnail[0]) {
                 thumbnail_url = req.files.thumbnail[0].location; // S3 URL
@@ -255,27 +271,53 @@ exports.uploadVideo = async (req, res) => {
             return res.status(400).json({ error: 'Video file or URL is required' });
         }
 
+        // Parse cast and crew if they're strings (from form data)
+        let castData = null;
+        let crewData = null;
+
+        if (cast) {
+            try {
+                castData = typeof cast === 'string' ? JSON.parse(cast) : cast;
+            } catch (e) {
+                console.error('Error parsing cast:', e);
+            }
+        }
+
+        if (crew) {
+            try {
+                crewData = typeof crew === 'string' ? JSON.parse(crew) : crew;
+            } catch (e) {
+                console.error('Error parsing crew:', e);
+            }
+        }
+
         // Insert with all required fields and proper defaults
         const [result] = await pool.query(
             `INSERT INTO videos (
                 title, description, video_url, thumbnail_url, 
-                category_id, creator_id, type, language, content_rating,
-                is_active, is_featured, is_trending, 
+                category_id, genre_id, creator_id, type, language, content_rating,
+                is_active, is_featured, is_trending,
+                duration, file_size, cast, crew,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
                 video_url,
                 thumbnail_url || null,
                 category_id,
+                genre_id || null,
                 creator_id,
                 type,
                 language,
                 content_rating,
                 is_active ? 1 : 0,
                 is_featured ? 1 : 0,
-                is_trending ? 1 : 0
+                is_trending ? 1 : 0,
+                duration || null,
+                file_size || null,
+                castData ? JSON.stringify(castData) : null,
+                crewData ? JSON.stringify(crewData) : null
             ]
         );
 
