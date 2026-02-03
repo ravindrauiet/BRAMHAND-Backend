@@ -44,8 +44,8 @@ const upload = multer({
     fileFilter: fileFilter,
     limits: {
         fileSize: 5 * 1024 * 1024 * 1024, // 5 GB limit
-        fieldSize: 10 * 1024 * 1024, // 10 MB field value limit (for long blob URLs on web)
-        fields: 20, // Max number of non-file fields
+        fieldSize: 50 * 1024 * 1024, // 25 MB field value limit (increased for huge JSONs)
+        fields: 100, // Max number of non-file fields (Increased from 20)
         fieldNameSize: 200 // Max field name size
     }
 });
