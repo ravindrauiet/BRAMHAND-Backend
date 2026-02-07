@@ -71,7 +71,7 @@ app.get('/', (req, res) => {
 app.use(['/api/auth', '/auth'], authRoutes);
 app.use(['/api/videos', '/videos'], videoRoutes);
 app.use(['/api/music', '/music'], musicRoutes);
-app.use(['/api/user', '/user', '/api/users'], userRoutes);
+app.use(['/api/user', '/user', '/api/users', '/users'], userRoutes);
 app.use(['/api/creator', '/creator'], creatorRoutes);
 app.use(['/api/notifications', '/notifications'], notificationRoutes);
 app.use(['/api/comments', '/comments'], commentRoutes);
