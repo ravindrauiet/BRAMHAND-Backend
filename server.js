@@ -22,8 +22,41 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configuration for credentials support
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+
+        // List of allowed origins
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'https://tirhuta.com',
+            'https://www.tirhuta.com',
+            'https://admin.tirhuta.com',
+            process.env.FRONTEND_URL,
+            process.env.ADMIN_URL
+        ].filter(Boolean);
+
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            // Allow all origins in development
+            if (process.env.NODE_ENV === 'development') {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -38,7 +71,7 @@ app.get('/', (req, res) => {
 app.use(['/api/auth', '/auth'], authRoutes);
 app.use(['/api/videos', '/videos'], videoRoutes);
 app.use(['/api/music', '/music'], musicRoutes);
-app.use(['/api/user', '/user'], userRoutes);
+app.use(['/api/user', '/user', '/api/users'], userRoutes);
 app.use(['/api/creator', '/creator'], creatorRoutes);
 app.use(['/api/notifications', '/notifications'], notificationRoutes);
 app.use(['/api/comments', '/comments'], commentRoutes);
