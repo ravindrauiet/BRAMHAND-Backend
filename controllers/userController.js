@@ -201,3 +201,32 @@ exports.getFollowing = async (req, res) => {
         res.status(500).json({ error: 'Failed' });
     }
 };
+
+// @desc    Update profile image
+// @route   PUT /api/users/profile/image
+exports.updateProfileImage = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No image file provided' });
+        }
+
+        // Get the S3 URL from multer-s3
+        const profileImageUrl = req.file.location;
+
+        // Update user's profile_image in database
+        await pool.query('UPDATE users SET profile_image = ? WHERE id = ?', [profileImageUrl, userId]);
+
+        console.log(`Updated profile image for user ${userId}: ${profileImageUrl}`);
+
+        res.json({
+            success: true,
+            message: 'Profile image updated successfully',
+            profileImage: profileImageUrl
+        });
+    } catch (error) {
+        console.error('Update profile image error:', error);
+        res.status(500).json({ success: false, error: 'Failed to update profile image' });
+    }
+};

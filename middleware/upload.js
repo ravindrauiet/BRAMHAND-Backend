@@ -35,7 +35,12 @@ const upload = multer({
             cb(null, { fieldName: file.fieldname });
         },
         key: (req, file, cb) => {
-            const folder = file.fieldname === 'video' ? 'videos' : 'thumbnails';
+            let folder = 'thumbnails';
+            if (file.fieldname === 'video') {
+                folder = 'videos';
+            } else if (file.fieldname === 'profileImage') {
+                folder = 'profile-images';
+            }
             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
             const ext = path.extname(file.originalname);
             cb(null, `${folder}/${uniqueSuffix}${ext}`);

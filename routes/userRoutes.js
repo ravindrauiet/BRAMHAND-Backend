@@ -3,8 +3,10 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const watchlistController = require('../controllers/watchlistController');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
 
 router.get('/profile', protect, userController.getProfile);
+router.put('/profile/image', protect, upload.single('profileImage'), userController.updateProfileImage);
 router.put('/preferences', protect, userController.updatePreferences);
 
 router.get('/history', protect, userController.getWatchHistory);
