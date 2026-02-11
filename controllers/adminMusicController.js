@@ -79,9 +79,134 @@ const getAllPlaylists = async (req, res) => {
     }
 };
 
+// @desc    Upload New Song
+// @route   POST /api/admin/songs
+const createSong = async (req, res) => {
+    try {
+        const {
+            title,
+            artist,
+            album,
+            genreId,
+            isActive = 'true',
+            isTrending = 'false',
+            isFeatured = 'false',
+            duration
+        } = req.body;
+
+        let audioUrl = null;
+        let coverImageUrl = null;
+        let fileSize = null;
+
+        // Get uploaded file URLs from multer-s3
+        if (req.files) {
+            if (req.files.audio && req.files.audio[0]) {
+                audioUrl = req.files.audio[0].location; // S3 URL
+                fileSize = req.files.audio[0].size;
+            }
+            if (req.files.coverImage && req.files.coverImage[0]) {
+                coverImageUrl = req.files.coverImage[0].location; // S3 URL
+            }
+        }
+
+        // Allow URL bodies for testing/manual override
+        if (!audioUrl && req.body.audioUrl) audioUrl = req.body.audioUrl;
+        if (!coverImageUrl && req.body.coverImageUrl) coverImageUrl = req.body.coverImageUrl;
+
+        if (!audioUrl) {
+            return res.status(400).json({ success: false, message: 'Audio file is required' });
+        }
+
+        const [result] = await pool.query(
+            `INSERT INTO songs (
+                title, artist, album, genre_id, 
+                audio_url, cover_image_url, 
+                is_active, is_trending, is_featured, 
+                duration, file_size,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            [
+                title,
+                artist,
+                album || null,
+                genreId || null,
+                audioUrl,
+                coverImageUrl || null,
+                isActive === 'true' || isActive === true ? 1 : 0,
+                isTrending === 'true' || isTrending === true ? 1 : 0,
+                isFeatured === 'true' || isFeatured === true ? 1 : 0,
+                duration || null,
+                fileSize || null
+            ]
+        );
+
+        res.json({
+            success: true,
+            id: result.insertId,
+            audioUrl,
+            coverImageUrl,
+            message: 'Song uploaded successfully'
+        });
+    } catch (error) {
+        console.error('Upload song error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Update Song Details
+// @route   PATCH /api/admin/songs/:id
+const updateSong = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            title, artist, album, genreId,
+            isActive, isTrending, isFeatured, duration
+        } = req.body;
+
+        const updates = [];
+        const values = [];
+
+        if (title !== undefined) { updates.push('title = ?'); values.push(title); }
+        if (artist !== undefined) { updates.push('artist = ?'); values.push(artist); }
+        if (album !== undefined) { updates.push('album = ?'); values.push(album); }
+        if (genreId !== undefined) { updates.push('genre_id = ?'); values.push(genreId); }
+        if (isActive !== undefined) { updates.push('is_active = ?'); values.push(isActive === 'true' || isActive === true ? 1 : 0); }
+        if (isTrending !== undefined) { updates.push('is_trending = ?'); values.push(isTrending === 'true' || isTrending === true ? 1 : 0); }
+        if (isFeatured !== undefined) { updates.push('is_featured = ?'); values.push(isFeatured === 'true' || isFeatured === true ? 1 : 0); }
+        if (duration !== undefined) { updates.push('duration = ?'); values.push(duration); }
+
+        // Handle file uploads
+        if (req.files) {
+            if (req.files.audio && req.files.audio[0]) {
+                updates.push('audio_url = ?');
+                values.push(req.files.audio[0].location);
+                updates.push('file_size = ?');
+                values.push(req.files.audio[0].size);
+            }
+            if (req.files.coverImage && req.files.coverImage[0]) {
+                updates.push('cover_image_url = ?');
+                values.push(req.files.coverImage[0].location);
+            }
+        }
+
+        if (updates.length > 0) {
+            updates.push('updated_at = NOW()');
+            values.push(id);
+            await pool.query(`UPDATE songs SET ${updates.join(', ')} WHERE id = ?`, values);
+        }
+
+        res.json({ success: true, message: 'Song updated successfully' });
+    } catch (error) {
+        console.error('Update song error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 module.exports = {
     getAllSongs,
     getSongById,
+    createSong,
+    updateSong,
     deleteSong,
     toggleSongStatus,
     getAllPlaylists

@@ -12,16 +12,17 @@ const s3 = new S3Client({
     },
 });
 
-// File Filter (Video & Image)
+// File Filter (Video, Image & Audio)
 const fileFilter = (req, file, cb) => {
     const allowedMimeTypes = [
         'video/mp4', 'video/mkv', 'video/avi', 'video/quicktime',
-        'image/jpeg', 'image/png', 'image/webp', 'image/jpg'
+        'image/jpeg', 'image/png', 'image/webp', 'image/jpg',
+        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/flac', 'audio/aac'
     ];
     if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only videos and images are allowed.'), false);
+        cb(new Error('Invalid file type. Only videos, images, and audio files are allowed.'), false);
     }
 };
 
@@ -38,6 +39,8 @@ const upload = multer({
             let folder = 'thumbnails';
             if (file.fieldname === 'video') {
                 folder = 'videos';
+            } else if (file.fieldname === 'audio') {
+                folder = 'audio';
             } else if (file.fieldname === 'profileImage') {
                 folder = 'profile-images';
             }

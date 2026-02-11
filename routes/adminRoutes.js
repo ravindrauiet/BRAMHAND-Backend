@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getStats, getAllUsers, getUserById, deleteUser, updateUserStatus } = require('../controllers/adminController');
 const { getAllVideos, getVideoById, deleteVideo: deleteAdminVideo, toggleVideoStatus, uploadVideo } = require('../controllers/adminVideoController');
-const { getAllSongs, getSongById, deleteSong: deleteAdminSong, toggleSongStatus: toggleSongStatusAdmin, getAllPlaylists } = require('../controllers/adminMusicController');
+const { getAllSongs, getSongById, deleteSong: deleteAdminSong, toggleSongStatus: toggleSongStatusAdmin, getAllPlaylists, createSong, updateSong } = require('../controllers/adminMusicController');
 const { getAllCreators, toggleMonetization } = require('../controllers/adminCreatorController');
 const {
     getVideoCategories, getMusicGenres,
@@ -28,9 +28,11 @@ router.patch('/videos/:id', protect, adminOnly, upload.fields([{ name: 'video', 
 router.patch('/videos/:id/status', protect, adminOnly, toggleVideoStatus);
 
 // Song Routes
+router.post('/songs', protect, adminOnly, upload.fields([{ name: 'audio', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), createSong);
 router.get('/songs', protect, adminOnly, getAllSongs);
 router.get('/songs/:id', protect, adminOnly, getSongById);
 router.delete('/songs/:id', protect, adminOnly, deleteAdminSong);
+router.patch('/songs/:id', protect, adminOnly, upload.fields([{ name: 'audio', maxCount: 1 }, { name: 'coverImage', maxCount: 1 }]), updateSong);
 router.patch('/songs/:id/status', protect, adminOnly, toggleSongStatusAdmin);
 
 router.get('/playlists', protect, adminOnly, getAllPlaylists);
