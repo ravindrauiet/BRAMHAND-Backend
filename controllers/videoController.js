@@ -839,3 +839,25 @@ exports.deleteComment = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// @desc    Get all episodes for a series
+// @route   GET /api/videos/series/:seriesId/episodes
+// @access  Public
+exports.getSeriesEpisodes = async (req, res) => {
+    try {
+        const { seriesId } = req.params;
+
+        const [episodes] = await pool.query(`
+            SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image
+            FROM videos v
+            JOIN users u ON v.creator_id = u.id
+            WHERE v.series_id = ? AND v.is_active = TRUE
+            ORDER BY v.season_number ASC, v.episode_number ASC
+        `, [seriesId]);
+
+        res.json({ success: true, episodes });
+    } catch (error) {
+        console.error('Get Series Episodes Error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

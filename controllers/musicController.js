@@ -190,3 +190,49 @@ exports.deletePlaylist = async (req, res) => {
         res.status(500).json({ error: 'Failed' });
     }
 };
+
+// @desc    Get single song by ID
+// @route   GET /api/music/songs/:id
+exports.getSongById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        let isLiked = false;
+        // Optionally check if authenticated user liked this song
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            const jwt = require('jsonwebtoken');
+            try {
+                const token = req.headers.authorization.split(' ')[1];
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+                const [like] = await pool.query('SELECT 1 FROM song_likes WHERE user_id = ? AND song_id = ?', [decoded.id, id]);
+                isLiked = like.length > 0;
+            } catch (e) { /* ignore invalid token */ }
+        }
+
+        const [songs] = await pool.query(
+            'SELECT s.*, g.name as genre_name FROM songs s LEFT JOIN music_genres g ON s.genre_id = g.id WHERE s.id = ? AND s.is_active = TRUE',
+            [id]
+        );
+
+        if (songs.length === 0) return res.status(404).json({ error: 'Song not found' });
+
+        res.json({ song: { ...songs[0], is_liked: isLiked } });
+    } catch (error) {
+        console.error('getSongById error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+// @desc    Record a song play (increments plays_count)
+// @route   POST /api/music/songs/:id/play
+exports.recordPlay = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('UPDATE songs SET plays_count = plays_count + 1 WHERE id = ?', [id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('recordPlay error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+

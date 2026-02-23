@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getStats, getAllUsers, getUserById, deleteUser, updateUserStatus } = require('../controllers/adminController');
-const { getAllVideos, getVideoById, deleteVideo: deleteAdminVideo, toggleVideoStatus, uploadVideo } = require('../controllers/adminVideoController');
+const { getAllVideos, getVideoById, deleteVideo: deleteAdminVideo, toggleVideoStatus, uploadVideo, getSeriesEpisodes: getAdminSeriesEpisodes, assignToSeries } = require('../controllers/adminVideoController');
 const { getAllSongs, getSongById, deleteSong: deleteAdminSong, toggleSongStatus: toggleSongStatusAdmin, getAllPlaylists, createSong, updateSong } = require('../controllers/adminMusicController');
 const { getAllCreators, toggleMonetization } = require('../controllers/adminCreatorController');
 const {
@@ -49,5 +49,9 @@ router.delete('/categories/:id', protect, adminOnly, deleteVideoCategory);
 router.get('/genres', protect, adminOnly, getMusicGenres);
 router.post('/genres', protect, adminOnly, createMusicGenre);
 router.delete('/genres/:id', protect, adminOnly, deleteMusicGenre);
+
+// Series Episode Management
+router.get('/series/:id/episodes', protect, adminOnly, getAdminSeriesEpisodes);
+router.patch('/videos/:id/series', protect, adminOnly, assignToSeries);
 
 module.exports = router;

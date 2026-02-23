@@ -16,6 +16,7 @@ const creatorRoutes = require('./routes/creatorRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const seriesRoutes = require('./routes/seriesRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ app.use(['/api/notifications', '/notifications'], notificationRoutes);
 app.use(['/api/comments', '/comments'], commentRoutes);
 app.use(['/api/series', '/series'], seriesRoutes);
 app.use(['/api/admin', '/admin'], require('./routes/adminRoutes'));
+app.use(['/api/search', '/search'], searchRoutes);
 
 // Error Handling
 app.use((err, req, res, next) => {

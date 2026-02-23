@@ -459,11 +459,57 @@ const updateVideo = async (req, res) => {
     }
 };
 
+// @desc    Get all episodes for a specific series (admin)
+// @route   GET /api/admin/series/:id/episodes
+const getSeriesEpisodes = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [episodes] = await pool.query(`
+            SELECT v.id, v.title, v.thumbnail_url as thumbnailUrl, v.episode_number as episodeNumber,
+                   v.season_number as seasonNumber, v.duration, v.is_active as isActive,
+                   v.views_count as viewsCount, v.likes_count as likesCount,
+                   u.full_name as creatorName, v.created_at as createdAt
+            FROM videos v
+            LEFT JOIN users u ON v.creator_id = u.id
+            WHERE v.series_id = ?
+            ORDER BY v.season_number ASC, v.episode_number ASC
+        `, [id]);
+
+        res.json({ success: true, episodes });
+    } catch (error) {
+        console.error('getSeriesEpisodes admin error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Assign a video to a series
+// @route   PATCH /api/admin/videos/:id/series
+const assignToSeries = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { seriesId, episodeNumber, seasonNumber } = req.body;
+
+        await pool.query(
+            'UPDATE videos SET series_id = ?, episode_number = ?, season_number = ?, updated_at = NOW() WHERE id = ?',
+            [seriesId || null, episodeNumber || null, seasonNumber || 1, id]
+        );
+
+        res.json({ success: true, message: 'Video assigned to series' });
+    } catch (error) {
+        console.error('assignToSeries error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+
 module.exports = {
     getAllVideos,
     getVideoById,
     deleteVideo,
     toggleVideoStatus,
     uploadVideo,
-    updateVideo
+    updateVideo,
+    getSeriesEpisodes,
+    assignToSeries
 };

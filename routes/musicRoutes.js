@@ -4,9 +4,13 @@ const musicController = require('../controllers/musicController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.get('/songs', musicController.getSongs);
+router.get('/songs/:id', musicController.getSongById);  // Single song
 router.get('/playlists', musicController.getPlaylists);
 router.get('/genres', musicController.getGenres);
 router.get('/stream', musicController.streamAudio);
+
+// Play tracking (public - no auth required)
+router.post('/songs/:id/play', musicController.recordPlay);
 
 // Interactions
 router.post('/songs/:id/like', protect, musicController.likeSong);

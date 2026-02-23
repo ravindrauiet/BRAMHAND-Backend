@@ -230,3 +230,24 @@ exports.updateProfileImage = async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to update profile image' });
     }
 };
+
+// @desc    Save FCM token for push notifications
+// @route   PUT /api/user/fcm-token
+// @access  Private
+exports.saveFcmToken = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { fcm_token } = req.body;
+
+        if (!fcm_token) {
+            return res.status(400).json({ success: false, message: 'FCM token is required' });
+        }
+
+        await pool.query('UPDATE users SET fcm_token = ? WHERE id = ?', [fcm_token, userId]);
+
+        res.json({ success: true, message: 'FCM token saved' });
+    } catch (error) {
+        console.error('Save FCM token error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

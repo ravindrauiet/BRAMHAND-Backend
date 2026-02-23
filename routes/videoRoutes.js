@@ -14,6 +14,9 @@ router.get('/trending', videoController.getTrending);
 router.get('/my-content', protect, videoController.getMyContent); // Get user's videos/reels
 router.post('/', protect, upload.fields([{ name: 'video', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), videoController.uploadVideo);
 
+// Series Episodes - MUST BE BEFORE /:id
+router.get('/series/:seriesId/episodes', videoController.getSeriesEpisodes);
+
 // Generic /:id routes AFTER specific routes
 router.get('/:id', videoController.getVideoById);
 router.patch('/:id', protect, videoController.updateVideoDetails); // Update video details
