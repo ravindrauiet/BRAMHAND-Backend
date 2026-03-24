@@ -65,6 +65,43 @@ exports.getProfile = async (req, res) => {
     }
 };
 
+// @desc    Update profile info (name, email, mobile)
+// @route   PUT /api/users/profile
+exports.updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { full_name, email, mobile_number } = req.body;
+
+        if (!full_name || full_name.trim() === '') {
+            return res.status(400).json({ success: false, error: 'Full name is required' });
+        }
+
+        await pool.query(
+            'UPDATE users SET full_name = ?, email = ?, mobile_number = ? WHERE id = ?',
+            [full_name.trim(), email || null, mobile_number || null, userId]
+        );
+
+        // Return updated user
+        const [users] = await pool.query(
+            'SELECT id, full_name, email, mobile_number, profile_image, is_creator FROM users WHERE id = ?',
+            [userId]
+        );
+        const [prefs] = await pool.query('SELECT * FROM user_preferences WHERE user_id = ?', [userId]);
+        const [followers] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE following_id = ?', [userId]);
+        const [following] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [userId]);
+
+        const user = users[0];
+        user.preferences = prefs[0] || {};
+        user._count = { followers: followers[0].count || 0, following: following[0].count || 0 };
+
+        console.log(`Updated profile for user ${userId}: name=${full_name}`);
+        res.json({ success: true, message: 'Profile updated successfully', user });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ success: false, error: 'Failed to update profile' });
+    }
+};
+
 exports.updatePreferences = async (req, res) => {
     try {
         const userId = req.user.id;

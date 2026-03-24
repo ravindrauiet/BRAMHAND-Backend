@@ -6,6 +6,7 @@ const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
 router.get('/profile', protect, userController.getProfile);
+router.put('/profile', protect, userController.updateProfile);
 router.put('/profile/image', protect, upload.single('profileImage'), userController.updateProfileImage);
 router.put('/preferences', protect, userController.updatePreferences);
 router.put('/fcm-token', protect, userController.saveFcmToken); // Save FCM push notification token
