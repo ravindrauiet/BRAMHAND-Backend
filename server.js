@@ -79,6 +79,7 @@ app.use(['/api/comments', '/comments'], commentRoutes);
 app.use(['/api/series', '/series'], seriesRoutes);
 app.use(['/api/admin', '/admin'], require('./routes/adminRoutes'));
 app.use(['/api/search', '/search'], searchRoutes);
+app.use(['/api/support', '/support'], require('./routes/supportRoutes'));
 
 // Error Handling
 app.use((err, req, res, next) => {

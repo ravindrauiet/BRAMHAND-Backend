@@ -54,4 +54,9 @@ router.delete('/genres/:id', protect, adminOnly, deleteMusicGenre);
 router.get('/series/:id/episodes', protect, adminOnly, getAdminSeriesEpisodes);
 router.patch('/videos/:id/series', protect, adminOnly, assignToSeries);
 
+// Support Messages
+const { getSupportMessages, deleteSupportMessage } = require('../controllers/adminSupportController');
+router.get('/support', protect, adminOnly, getSupportMessages);
+router.delete('/support/:id', protect, adminOnly, deleteSupportMessage);
+
 module.exports = router;
