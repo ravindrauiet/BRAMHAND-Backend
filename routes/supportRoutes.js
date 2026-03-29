@@ -18,21 +18,26 @@ const { protect } = require('../middleware/authMiddleware');
                 message TEXT NOT NULL,
                 feedback_type VARCHAR(100),
                 rating TINYINT,
+                status VARCHAR(50) DEFAULT 'pending',
+                admin_notes TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT NOW()
             );
         `);
-        // Safely alter if user_id doesn't exist (v2 schema)
-        try {
-            await pool.query(`ALTER TABLE support_messages ADD COLUMN user_id INT DEFAULT NULL AFTER id;`);
-            console.log('✅ Migrated support_messages table (added user_id)');
-        } catch (alterErr) {
-            // Error means column likely already exists, ignore
+        // Safely alter if columns don't exist
+        const alterColumns = [
+            `ALTER TABLE support_messages ADD COLUMN user_id INT DEFAULT NULL AFTER id`,
+            `ALTER TABLE support_messages ADD COLUMN status VARCHAR(50) DEFAULT 'pending' AFTER rating`,
+            `ALTER TABLE support_messages ADD COLUMN admin_notes TEXT DEFAULT NULL AFTER status`,
+        ];
+        for (const sql of alterColumns) {
+            try { await pool.query(sql); } catch(e) { /* column exists, skip */ }
         }
         console.log('✅ support_messages table is ready');
     } catch (err) {
         console.error('❌ Failed to create support_messages table:', err.message);
     }
 })();
+
 
 // Helper function to optionally get user_id from token
 const getOptionalUserId = (req) => {
@@ -103,7 +108,7 @@ router.post('/feedback', async (req, res) => {
 router.get('/history', protect, async (req, res) => {
     try {
         const [messages] = await pool.query(
-            `SELECT id, type, subject, message, feedback_type, rating, created_at 
+            `SELECT id, type, subject, message, feedback_type, rating, status, admin_notes, created_at 
              FROM support_messages 
              WHERE user_id = ? 
              ORDER BY created_at DESC`,

@@ -6,18 +6,21 @@ const pool = require('../config/db');
 const getSupportMessages = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = parseInt(req.query.limit) || 50;
         const offset = (page - 1) * limit;
-        const type = req.query.type || null; // 'contact' | 'feedback' | null (all)
+        const type = req.query.type || null;
 
-        let whereClause = type ? 'WHERE type = ?' : '';
+        let whereClause = type ? 'WHERE sm.type = ?' : '';
         let params = type ? [type, limit, offset] : [limit, offset];
 
         const [messages] = await pool.query(`
-            SELECT id, type, name, email_or_mobile, subject, message, feedback_type, rating, created_at
-            FROM support_messages
+            SELECT sm.id, sm.type, sm.name, sm.email_or_mobile, sm.subject, sm.message,
+                   sm.feedback_type, sm.rating, sm.status, sm.admin_notes, sm.created_at,
+                   u.full_name as user_name, u.email as user_email, u.mobile_number as user_mobile
+            FROM support_messages sm
+            LEFT JOIN users u ON sm.user_id = u.id
             ${whereClause}
-            ORDER BY created_at DESC
+            ORDER BY sm.created_at DESC
             LIMIT ? OFFSET ?
         `, params);
 
@@ -39,6 +42,23 @@ const getSupportMessages = async (req, res) => {
     }
 };
 
+// @desc    Update support message status/notes
+// @route   PATCH /api/admin/support/:id
+// @access  Private/Admin
+const updateSupportMessage = async (req, res) => {
+    try {
+        const { status, admin_notes } = req.body;
+        await pool.query(
+            `UPDATE support_messages SET status = ?, admin_notes = ? WHERE id = ?`,
+            [status, admin_notes || null, req.params.id]
+        );
+        res.json({ success: true, message: 'Updated successfully' });
+    } catch (error) {
+        console.error('updateSupportMessage error:', error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 // @desc    Delete support message
 // @route   DELETE /api/admin/support/:id
 // @access  Private/Admin
@@ -52,4 +72,5 @@ const deleteSupportMessage = async (req, res) => {
     }
 };
 
-module.exports = { getSupportMessages, deleteSupportMessage };
+module.exports = { getSupportMessages, updateSupportMessage, deleteSupportMessage };
+
