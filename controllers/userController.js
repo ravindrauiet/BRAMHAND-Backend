@@ -155,9 +155,10 @@ exports.getWatchHistory = async (req, res) => {
 exports.removeFromWatchHistory = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { viewId } = req.params;
+        const { viewId } = req.params; // viewId can be a video_id or view row id
 
-        await pool.query('DELETE FROM video_views WHERE id = ? AND user_id = ?', [viewId, userId]);
+        // Delete all view records for this video by this user (cleaner UX than single-row delete)
+        await pool.query('DELETE FROM video_views WHERE video_id = ? AND user_id = ?', [viewId, userId]);
         res.json({ success: true, message: 'Removed from history' });
     } catch (error) {
         console.error('Remove from history error:', error);

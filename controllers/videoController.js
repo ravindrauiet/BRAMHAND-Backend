@@ -211,6 +211,14 @@ exports.getVideoById = async (req, res) => {
             }
         }
 
+        // Parse JSON columns that MySQL2 may return as strings
+        if (video.subtitles && typeof video.subtitles === 'string') {
+            try { video.subtitles = JSON.parse(video.subtitles); } catch (_) { video.subtitles = []; }
+        }
+        if (video.audio_languages && typeof video.audio_languages === 'string') {
+            try { video.audio_languages = JSON.parse(video.audio_languages); } catch (_) { video.audio_languages = []; }
+        }
+
         res.json({ video });
     } catch (error) {
         console.error(error);

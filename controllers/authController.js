@@ -1,5 +1,7 @@
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { sendOtpEmail } = require('../utils/emailService');
+const { sendOtpSms } = require('../utils/smsService');
 
 // Helper to generate JWT
 const generateToken = (id) => {
@@ -129,15 +131,44 @@ exports.forgotPassword = async (req, res) => {
             [mobile_or_email, otp, expiresAt]
         );
 
-        // TODO: Integrate real SMS/email provider (Twilio, SendGrid, etc.)
-        // For now, return OTP in response (development only)
-        console.log(`[Password Reset] OTP for ${mobile_or_email}: ${otp}`);
+        // ── Deliver OTP via email or SMS ─────────────────────────────────
+        const isEmail = mobile_or_email.includes('@');
+        let deliveryError = null;
+
+        try {
+            if (isEmail) {
+                await sendOtpEmail(mobile_or_email, otp);
+                console.log(`[Password Reset] OTP email sent to ${mobile_or_email}`);
+            } else {
+                await sendOtpSms(mobile_or_email, otp);
+                console.log(`[Password Reset] OTP SMS sent to ${mobile_or_email}`);
+            }
+        } catch (deliveryErr) {
+            // Log the delivery failure but still respond so the OTP is saved
+            // In development, surface the error; in production, log silently.
+            deliveryError = deliveryErr.message;
+            console.error(`[Password Reset] Delivery failed for ${mobile_or_email}:`, deliveryErr.message);
+        }
+
+        // In development: always include OTP in response (for testing without real credentials)
+        // In production: never expose OTP in response
+        const isDev = process.env.NODE_ENV !== 'production';
+
+        if (deliveryError && !isDev) {
+            // Delivery failed in production — tell the user something went wrong
+            return res.status(500).json({
+                success: false,
+                message: `Failed to send OTP. Please try again later.`,
+            });
+        }
 
         res.json({
             success: true,
-            message: 'OTP sent successfully',
-            // Remove `otp` from response in production!
-            ...(process.env.NODE_ENV === 'development' ? { otp } : {})
+            message: isEmail
+                ? 'OTP sent to your email address.'
+                : 'OTP sent to your mobile number via SMS.',
+            ...(isDev ? { otp, _dev_note: 'OTP exposed in dev mode only' } : {}),
+            ...(isDev && deliveryError ? { _delivery_error: deliveryError } : {}),
         });
     } catch (error) {
         console.error('forgotPassword error:', error);
