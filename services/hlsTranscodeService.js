@@ -77,6 +77,9 @@ function transcodeVariant(inputPath, hlsOutputDir, variant) {
     fs.mkdirSync(variantDir, { recursive: true });
     const playlistPath = path.join(variantDir, 'index.m3u8');
 
+    // Split "426x240" → width=426, height=240 (pad filter uses ":" not "x")
+    const [padW, padH] = variant.resolution.split('x');
+
     const stderrLines = [];
     return new Promise((resolve, reject) => {
         ffmpeg(inputPath)
@@ -84,7 +87,7 @@ function transcodeVariant(inputPath, hlsOutputDir, variant) {
                 // Map video stream (required) and audio stream (optional — ? means skip if absent)
                 '-map',                    '0:v:0',
                 '-map',                    '0:a:0?',
-                '-vf',                     `scale=${variant.resolution}:force_original_aspect_ratio=decrease,pad=${variant.resolution}:(ow-iw)/2:(oh-ih)/2`,
+                '-vf',                     `scale=${variant.resolution}:force_original_aspect_ratio=decrease,pad=${padW}:${padH}:(ow-iw)/2:(oh-ih)/2`,
                 '-c:v',                    'libx264',
                 '-b:v',                    variant.videoBitrate,
                 '-c:a',                    'aac',
