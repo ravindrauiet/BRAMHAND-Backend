@@ -205,6 +205,11 @@ model Video {
   language      String        @default("Hindi")
   contentRating ContentRating @default(U) @map("content_rating")
   
+  // HLS adaptive streaming (populated by background transcode worker)
+  hlsUrl          String?   @map("hls_url") @db.VarChar(1024)
+  transcodeStatus String    @default("pending") @map("transcode_status") // pending | processing | done | failed
+  transcodeError  String?   @map("transcode_error") @db.Text
+
   uploadDate    DateTime      @default(now()) @map("upload_date")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")

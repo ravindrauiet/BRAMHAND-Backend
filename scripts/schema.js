@@ -98,6 +98,9 @@ CREATE TABLE IF NOT EXISTS videos (
     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    hls_url VARCHAR(1024) NULL,
+    transcode_status ENUM('pending','processing','done','failed') NOT NULL DEFAULT 'pending',
+    transcode_error TEXT NULL,
     FOREIGN KEY (creator_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES video_categories(id),
     FOREIGN KEY (genre_id) REFERENCES video_genres(id)

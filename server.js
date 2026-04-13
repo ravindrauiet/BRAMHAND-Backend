@@ -20,6 +20,16 @@ const searchRoutes = require('./routes/searchRoutes');
 
 dotenv.config();
 
+// Start HLS background transcode worker (side-effect on require)
+try {
+    require('./services/transcodeQueue');
+    console.log('[Server] HLS transcode worker started.');
+} catch (err) {
+    // Non-fatal: if Redis is unavailable the API still works;
+    // videos play via direct video_url (no HLS adaptive streaming).
+    console.warn('[Server] HLS transcode worker failed to start (Redis unavailable?):', err.message);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

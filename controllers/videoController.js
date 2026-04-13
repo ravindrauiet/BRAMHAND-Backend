@@ -435,6 +435,30 @@ exports.uploadVideo = async (req, res) => {
         });
 
         res.json({ success: true, id: result.insertId, video_url, thumbnail_url });
+
+        // Fire-and-forget: kick off HLS transcoding in the background.
+        // The HTTP response is already sent; the video is immediately playable
+        // via video_url while the transcode job runs.
+        if (req.files?.video?.[0] && video_url) {
+            try {
+                const { transcodeQueue } = require('../services/transcodeQueue');
+                const s3Key = new URL(video_url).pathname.replace(/^\//, '');
+                await transcodeQueue.add(
+                    'transcode',
+                    { videoId: result.insertId, s3Key },
+                    {
+                        attempts: 3,
+                        backoff: { type: 'exponential', delay: 60000 }, // 1 min, 2 min, 4 min
+                        removeOnComplete: 100,
+                        removeOnFail: 50,
+                    }
+                );
+                console.log(`[UploadVideo] Transcode job queued for videoId=${result.insertId}`);
+            } catch (queueErr) {
+                // Non-fatal — video is still accessible via video_url
+                console.error('[UploadVideo] Failed to enqueue transcode job:', queueErr.message);
+            }
+        }
     } catch (error) {
         console.error('Upload video error:', error);
         res.status(500).json({ error: 'Failed to upload' });
