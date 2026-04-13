@@ -77,9 +77,13 @@ function transcodeVariant(inputPath, hlsOutputDir, variant) {
     fs.mkdirSync(variantDir, { recursive: true });
     const playlistPath = path.join(variantDir, 'index.m3u8');
 
+    const stderrLines = [];
     return new Promise((resolve, reject) => {
         ffmpeg(inputPath)
             .outputOptions([
+                // Map video stream (required) and audio stream (optional — ? means skip if absent)
+                '-map',                    '0:v:0',
+                '-map',                    '0:a:0?',
                 '-vf',                     `scale=${variant.resolution}:force_original_aspect_ratio=decrease,pad=${variant.resolution}:(ow-iw)/2:(oh-ih)/2`,
                 '-c:v',                    'libx264',
                 '-b:v',                    variant.videoBitrate,
@@ -94,12 +98,18 @@ function transcodeVariant(inputPath, hlsOutputDir, variant) {
             ])
             .output(playlistPath)
             .on('start', cmd => console.log(`[HLS][${variant.name}] FFmpeg cmd: ${cmd}`))
+            .on('stderr', line => stderrLines.push(line))
             .on('progress', p => console.log(`[HLS][${variant.name}] ${Math.round(p.percent ?? 0)}%`))
             .on('end', () => {
                 console.log(`[HLS][${variant.name}] Done.`);
                 resolve(playlistPath);
             })
-            .on('error', err => reject(new Error(`FFmpeg [${variant.name}]: ${err.message}`)))
+            .on('error', (err) => {
+                // Print last 10 lines of FFmpeg stderr for diagnosis
+                const detail = stderrLines.slice(-10).join('\n');
+                console.error(`[HLS][${variant.name}] FFmpeg stderr:\n${detail}`);
+                reject(new Error(`FFmpeg [${variant.name}]: ${err.message}`));
+            })
             .run();
     });
 }
