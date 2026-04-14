@@ -61,7 +61,8 @@ router.patch('/support/:id', protect, adminOnly, updateSupportMessage);
 router.delete('/support/:id', protect, adminOnly, deleteSupportMessage);
 
 // Notification / Email (admin broadcast)
-const { adminSendPush, adminSendEmail } = require('../controllers/notificationController');
+const { adminSendPush, adminSendEmail, adminGetAnalytics } = require('../controllers/notificationController');
+router.get('/notifications/analytics', protect, adminOnly, adminGetAnalytics);
 router.post('/notifications/push', protect, adminOnly, adminSendPush);
 router.post('/notifications/email', protect, adminOnly, adminSendEmail);
 
