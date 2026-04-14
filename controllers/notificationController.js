@@ -1,8 +1,9 @@
 const pool = require('../config/db');
+const { sendToToken, sendToTokens } = require('../services/fcmService');
 
 exports.getNotifications = async (req, res) => {
     try {
-        const userId = req.headers['x-user-id'] || 1;
+        const userId = req.user?.id || req.headers['x-user-id'] || 1;
         const [notifs] = await pool.query(
             'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
             [userId]
@@ -15,17 +16,12 @@ exports.getNotifications = async (req, res) => {
 
 exports.registerToken = async (req, res) => {
     try {
-        const userId = req.user.id; // From auth middleware protection
+        const userId = req.user.id;
         const { token } = req.body;
 
         if (!token) {
             return res.status(400).json({ error: 'Token is required' });
         }
-
-        // Update user with new FCM token
-        // Using raw query as project seems slightly mixed, but Prisma usage suggests direct update if converted
-        // Assuming we are sticking to the existing pattern, let's look at getNotifications... 
-        // It uses pool.query. So I will use pool.query here too for consistency with this file.
 
         await pool.query(
             'UPDATE users SET fcm_token = ? WHERE id = ?',
@@ -42,7 +38,6 @@ exports.registerToken = async (req, res) => {
 exports.broadcastNotification = async (req, res) => {
     try {
         const { title, message } = req.body;
-        // Demo: Target first 5 users
         const [users] = await pool.query('SELECT id FROM users LIMIT 5');
 
         for (const user of users) {
@@ -67,5 +62,100 @@ exports.getSystemNotifications = async (req, res) => {
         res.json({ notifications: notifs });
     } catch (error) {
         res.status(500).json({ error: 'Failed' });
+    }
+};
+
+// ── Admin: Send push notification ────────────────────────────────────────────
+
+/**
+ * POST /api/admin/notifications/push
+ * Body: { user_id?, title, body, data? }
+ * If user_id is omitted, sends to ALL users with a token.
+ */
+exports.adminSendPush = async (req, res) => {
+    try {
+        const { user_id, title, body, data = {} } = req.body;
+        if (!title || !body) {
+            return res.status(400).json({ success: false, message: 'title and body are required' });
+        }
+
+        if (user_id) {
+            // Single user
+            const [rows] = await pool.query('SELECT fcm_token FROM users WHERE id = ?', [user_id]);
+            if (!rows.length || !rows[0].fcm_token) {
+                return res.status(404).json({ success: false, message: 'User not found or no FCM token registered' });
+            }
+            await sendToToken(rows[0].fcm_token, { title, body, data });
+
+            // Record in-app notification
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [user_id, title, body, 'ADMIN']
+            );
+
+            return res.json({ success: true, message: 'Push notification sent to user' });
+        }
+
+        // Broadcast to all users with tokens
+        const [rows] = await pool.query('SELECT id, fcm_token FROM users WHERE fcm_token IS NOT NULL');
+        const tokens = rows.map(r => r.fcm_token);
+
+        await sendToTokens(tokens, { title, body, data });
+
+        // Record in-app notification for all users
+        const values = rows.map(r => [r.id, title, body, 'ADMIN']);
+        if (values.length > 0) {
+            await pool.query(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES ?',
+                [values]
+            );
+        }
+
+        res.json({ success: true, message: `Push sent to ${tokens.length} devices` });
+    } catch (error) {
+        console.error('[adminSendPush] error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// ── Admin: Send email ─────────────────────────────────────────────────────────
+
+/**
+ * POST /api/admin/notifications/email
+ * Body: { user_id?, subject, message }
+ * If user_id is omitted, sends to ALL users with an email address.
+ */
+exports.adminSendEmail = async (req, res) => {
+    try {
+        const { sendAdminEmail } = require('../utils/emailService');
+        const { user_id, subject, message } = req.body;
+        if (!subject || !message) {
+            return res.status(400).json({ success: false, message: 'subject and message are required' });
+        }
+
+        if (user_id) {
+            const [rows] = await pool.query('SELECT email, full_name FROM users WHERE id = ?', [user_id]);
+            if (!rows.length || !rows[0].email) {
+                return res.status(404).json({ success: false, message: 'User not found or no email address' });
+            }
+            await sendAdminEmail(rows[0].email, { subject, message, userName: rows[0].full_name });
+            return res.json({ success: true, message: 'Email sent to user' });
+        }
+
+        // Broadcast
+        const [rows] = await pool.query('SELECT email, full_name FROM users WHERE email IS NOT NULL');
+        let sent = 0;
+        for (const row of rows) {
+            try {
+                await sendAdminEmail(row.email, { subject, message, userName: row.full_name });
+                sent++;
+            } catch (err) {
+                console.error(`[adminSendEmail] Failed for ${row.email}:`, err.message);
+            }
+        }
+        res.json({ success: true, message: `Email sent to ${sent}/${rows.length} users` });
+    } catch (error) {
+        console.error('[adminSendEmail] error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };

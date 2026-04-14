@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
-const { sendOtpEmail } = require('../utils/emailService');
+const { sendOtpEmail, sendWelcomeEmail } = require('../utils/emailService');
 const { sendOtpSms } = require('../utils/smsService');
 
 // Helper to generate JWT
@@ -52,6 +52,13 @@ exports.register = async (req, res) => {
         };
 
         const token = generateToken(newUser.id);
+
+        // Send welcome email — fire and forget, don't block response
+        if (newUser.email) {
+            sendWelcomeEmail(newUser.email, full_name).catch(err =>
+                console.error('[Auth] Welcome email failed:', err.message)
+            );
+        }
 
         res.json({ success: true, message: 'Registration successful', token, user: newUser });
     } catch (error) {

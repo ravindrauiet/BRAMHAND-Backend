@@ -271,6 +271,26 @@ const uploadVideo = async (req, res) => {
             thumbnailUrl,
             message: 'Video uploaded successfully'
         });
+
+        // ── Notify series watchers when a new episode is added (fire-and-forget) ─
+        if (seriesId) {
+            const { sendToTokens } = require('../services/fcmService');
+            pool.query(`
+                SELECT DISTINCT u.fcm_token
+                FROM watchlist w
+                JOIN videos v ON w.video_id = v.id
+                JOIN users u ON w.user_id = u.id
+                WHERE v.series_id = ? AND u.fcm_token IS NOT NULL
+            `, [seriesId]).then(([rows]) => {
+                const tokens = rows.map(r => r.fcm_token).filter(Boolean);
+                if (!tokens.length) return;
+                return sendToTokens(tokens, {
+                    title: 'New Episode Available 🎬',
+                    body: `Episode ${episodeNumber || ''}: ${title}`,
+                    data: { type: 'new_episode', videoId: String(result.insertId), seriesId: String(seriesId) },
+                });
+            }).catch(() => {});
+        }
     } catch (error) {
         console.error('Upload video error:', error);
         console.error('Error details:', {

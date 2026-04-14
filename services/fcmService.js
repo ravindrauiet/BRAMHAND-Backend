@@ -1,57 +1,70 @@
 const admin = require('firebase-admin');
 const path = require('path');
 
-let fcmInitialized = false;
-
-try {
-    // Check if service account file exists or if env vars are set
-    // You should place serviceAccountKey.json in the backend root or config folder
-    const serviceAccount = require('../serviceAccountKey.json');
-
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-
-    fcmInitialized = true;
-    console.log('FCM Initialized successfully');
-} catch (error) {
-    console.warn('FCM Setup Skipped: serviceAccountKey.json not found or invalid.');
-    console.warn('Push notifications will be logged but not sent.');
+// Initialize Firebase Admin SDK once
+let _initialized = false;
+function ensureInit() {
+    if (_initialized) return;
+    const serviceAccount = require(path.join(__dirname, '../firebase-service-account.json'));
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    _initialized = true;
+    console.log('[FCM] Firebase Admin SDK initialized.');
 }
 
 /**
- * Send a push notification to a specific device token
- * @param {string} token - The FCM device token
- * @param {string} title - Notification title
- * @param {string} body - Notification body
- * @param {object} data - Optional data payload
+ * Send push notification to a single FCM token.
  */
-exports.sendPushNotification = async (token, title, body, data = {}) => {
+async function sendToToken(token, { title, body, data = {} }) {
     if (!token) return;
-
-    if (!fcmInitialized) {
-        console.log(`[MOCK FCM] To: ${token} | Title: ${title} | Body: ${body}`);
-        return;
-    }
-
-    const message = {
-        notification: {
-            title,
-            body
-        },
-        data: {
-            ...data,
-            click_action: 'FLUTTER_NOTIFICATION_CLICK'
-        },
-        token: token
-    };
-
     try {
-        const response = await admin.messaging().send(message);
-        console.log('Successfully sent message:', response);
-        return response;
-    } catch (error) {
-        console.error('Error sending message:', error);
-        // If token is invalid (NotRegistered), we might want to remove it from DB eventually
+        ensureInit();
+        await admin.messaging().send({
+            token,
+            notification: { title, body },
+            data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+            android: {
+                priority: 'high',
+                notification: { sound: 'default', channelId: 'tirhuta_main' },
+            },
+        });
+    } catch (err) {
+        console.error('[FCM] sendToToken error:', err.message);
     }
-};
+}
+
+/**
+ * Send push notification to multiple FCM tokens (batches of 500).
+ */
+async function sendToTokens(tokens, { title, body, data = {} }) {
+    const valid = tokens.filter(Boolean);
+    if (!valid.length) return;
+    ensureInit();
+
+    const dataStr = Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)]));
+    const CHUNK = 500;
+    let totalSuccess = 0;
+
+    for (let i = 0; i < valid.length; i += CHUNK) {
+        const chunk = valid.slice(i, i + CHUNK);
+        try {
+            const res = await admin.messaging().sendEachForMulticast({
+                tokens: chunk,
+                notification: { title, body },
+                data: dataStr,
+                android: {
+                    priority: 'high',
+                    notification: { sound: 'default', channelId: 'tirhuta_main' },
+                },
+            });
+            totalSuccess += res.successCount;
+            if (res.failureCount > 0) {
+                console.error(`[FCM] ${res.failureCount} failures in batch`);
+            }
+        } catch (err) {
+            console.error('[FCM] sendToTokens batch error:', err.message);
+        }
+    }
+    console.log(`[FCM] Delivered to ${totalSuccess}/${valid.length} devices.`);
+}
+
+module.exports = { sendToToken, sendToTokens };

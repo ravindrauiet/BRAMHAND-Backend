@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { sendToToken } = require('../services/fcmService');
 
 exports.addComment = async (req, res) => {
     try {
@@ -30,6 +31,22 @@ exports.addComment = async (req, res) => {
         };
 
         res.json({ success: true, comment: newComment });
+
+        // ── Notify video owner (fire-and-forget) ────────────────────────────
+        // Don't notify if the commenter IS the owner
+        pool.query(
+            'SELECT u.fcm_token, v.title FROM videos v JOIN users u ON v.creator_id = u.id WHERE v.id = ? AND v.creator_id != ?',
+            [videoId, userId]
+        ).then(([rows]) => {
+            if (rows.length && rows[0].fcm_token) {
+                const commenterName = req.user.full_name || 'Someone';
+                sendToToken(rows[0].fcm_token, {
+                    title: `New comment on "${rows[0].title}"`,
+                    body: `${commenterName}: ${text.substring(0, 80)}`,
+                    data: { type: 'comment', videoId: String(videoId) },
+                }).catch(() => {});
+            }
+        }).catch(() => {});
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed to add comment' });

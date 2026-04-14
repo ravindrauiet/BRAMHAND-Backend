@@ -176,7 +176,7 @@ exports.followUser = async (req, res) => {
         }
 
         // Check if user to follow exists
-        const [target] = await pool.query('SELECT id FROM users WHERE id = ?', [followingId]);
+        const [target] = await pool.query('SELECT id, fcm_token, full_name FROM users WHERE id = ?', [followingId]);
         if (target.length === 0) return res.status(404).json({ error: 'User not found' });
 
         // Check if already following
@@ -187,6 +187,17 @@ exports.followUser = async (req, res) => {
 
         await pool.query('INSERT INTO follows (follower_id, following_id) VALUES (?, ?)', [followerId, followingId]);
         res.json({ success: true });
+
+        // ── Notify the followed user (fire-and-forget) ───────────────────────
+        if (target[0].fcm_token) {
+            const { sendToToken } = require('../services/fcmService');
+            const followerName = req.user.full_name || 'Someone';
+            sendToToken(target[0].fcm_token, {
+                title: 'New Follower',
+                body: `${followerName} started following you`,
+                data: { type: 'follow', userId: String(followerId) },
+            }).catch(() => {});
+        }
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Failed' });
