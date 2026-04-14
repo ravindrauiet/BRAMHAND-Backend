@@ -1,12 +1,25 @@
 const admin = require('firebase-admin');
-const path = require('path');
 
 // Initialize Firebase Admin SDK once
 let _initialized = false;
 function ensureInit() {
     if (_initialized) return;
-    const serviceAccount = require(path.join(__dirname, '../firebase-service-account.json'));
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY
+        ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        : undefined;
+
+    if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
+        throw new Error('[FCM] Missing FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY in .env');
+    }
+
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey,
+        }),
+    });
     _initialized = true;
     console.log('[FCM] Firebase Admin SDK initialized.');
 }
