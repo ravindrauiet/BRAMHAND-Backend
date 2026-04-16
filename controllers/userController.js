@@ -282,6 +282,42 @@ exports.updateProfileImage = async (req, res) => {
 
 // @desc    Save FCM token for push notifications
 // @route   PUT /api/user/fcm-token
+// @desc    Get public profile of a user/creator
+// @route   GET /api/users/:id/profile
+exports.getPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if requesting user is logged in (to show is_following)
+        let viewerId = null;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            const jwt = require('jsonwebtoken');
+            try {
+                const token = req.headers.authorization.split(' ')[1];
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+                viewerId = decoded.id;
+            } catch (e) {}
+        }
+
+        const [users] = await pool.query(
+            `SELECT u.id, u.full_name, u.bio, u.profile_image,
+                (SELECT COUNT(*) FROM follows WHERE following_id = u.id) as followers_count,
+                (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) as following_count,
+                (SELECT COALESCE(SUM(views_count), 0) FROM videos WHERE creator_id = u.id AND is_active = TRUE) as total_views
+                ${viewerId ? `, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.id) as is_following` : ', FALSE as is_following'}
+            FROM users u WHERE u.id = ?`,
+            viewerId ? [viewerId, id] : [id]
+        );
+
+        if (!users.length) return res.status(404).json({ error: 'User not found' });
+
+        res.json(users[0]);
+    } catch (error) {
+        console.error('getPublicProfile error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
 // @access  Private
 exports.saveFcmToken = async (req, res) => {
     try {

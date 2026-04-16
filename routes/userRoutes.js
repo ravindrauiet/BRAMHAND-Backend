@@ -14,6 +14,9 @@ router.put('/fcm-token', protect, userController.saveFcmToken); // Save FCM push
 router.get('/history', protect, userController.getWatchHistory);
 router.delete('/history/:viewId', protect, userController.removeFromWatchHistory);
 
+// Public creator profile
+router.get('/:id/profile', userController.getPublicProfile);
+
 // Social Graph
 router.post('/:id/follow', protect, userController.followUser);
 router.delete('/:id/follow', protect, userController.unfollowUser);

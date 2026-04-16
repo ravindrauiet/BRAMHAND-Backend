@@ -51,14 +51,9 @@ exports.getPlaylists = async (req, res) => {
             (SELECT COUNT(*) FROM playlist_songs WHERE playlist_id = p.id) as song_count
             FROM playlists p
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE p.is_public = TRUE
+            WHERE (p.is_public = TRUE${user_id ? ' OR p.user_id = ?' : ''})
         `;
-        const params = [];
-
-        if (user_id) {
-            query += ' OR p.user_id = ?';
-            params.push(user_id);
-        }
+        const params = user_id ? [user_id] : [];
 
         const [playlists] = await pool.query(query, params);
         res.json({ playlists });
@@ -122,15 +117,52 @@ exports.unlikeSong = async (req, res) => {
 exports.createPlaylist = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { name, is_public } = req.body;
+        const { name, description, is_public } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Playlist name is required' });
+        }
 
         const [result] = await pool.query(
-            'INSERT INTO playlists (user_id, name, is_public, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-            [userId, name, is_public ? 1 : 0]
+            'INSERT INTO playlists (user_id, name, description, is_public, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+            [userId, name.trim(), description || null, is_public ? 1 : 0]
         );
         res.json({ success: true, id: result.insertId });
     } catch (error) {
         console.error('createPlaylist error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+exports.getPlaylistById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [playlists] = await pool.query(`
+            SELECT p.*, u.full_name as user_name,
+            (SELECT COUNT(*) FROM playlist_songs WHERE playlist_id = p.id) as song_count
+            FROM playlists p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.id = ?
+        `, [id]);
+
+        if (!playlists.length) return res.status(404).json({ error: 'Playlist not found' });
+
+        const playlist = playlists[0];
+
+        // Fetch songs in this playlist
+        const [songs] = await pool.query(`
+            SELECT s.*, g.name as genre_name
+            FROM playlist_songs ps
+            JOIN songs s ON ps.song_id = s.id
+            LEFT JOIN music_genres g ON s.genre_id = g.id
+            WHERE ps.playlist_id = ?
+            ORDER BY ps.added_at ASC
+        `, [id]);
+
+        res.json({ playlist: { ...playlist, songs } });
+    } catch (error) {
+        console.error('getPlaylistById error:', error);
         res.status(500).json({ error: 'Failed' });
     }
 };

@@ -6,6 +6,7 @@ const { protect } = require('../middleware/authMiddleware');
 router.get('/songs', musicController.getSongs);
 router.get('/songs/:id', musicController.getSongById);  // Single song
 router.get('/playlists', musicController.getPlaylists);
+router.get('/playlists/:id', musicController.getPlaylistById);
 router.get('/genres', musicController.getGenres);
 router.get('/stream', musicController.streamAudio);
 

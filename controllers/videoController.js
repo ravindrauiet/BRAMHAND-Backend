@@ -76,6 +76,13 @@ exports.getVideos = async (req, res) => {
             query += ' AND v.is_trending = ?';
             params.push(req.query.is_trending === 'true' || req.query.is_trending === '1' ? 1 : 0);
         }
+        if (req.query.new_this_week === 'true') {
+            query += ' AND v.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        }
+        if (req.query.creator_id) {
+            query += ' AND v.creator_id = ?';
+            params.push(req.query.creator_id);
+        }
 
         // Language Filtering based on user preference
         if (userId && !category_id && !genre_id && !search && !req.query.is_featured && !req.query.is_trending) {
@@ -891,5 +898,40 @@ exports.getSeriesEpisodes = async (req, res) => {
     } catch (error) {
         console.error('Get Series Episodes Error:', error);
         res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Rate a video (1-5 stars)
+// @route   POST /api/videos/:id/rate
+exports.rateVideo = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { rating } = req.body;
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+        }
+
+        // Upsert rating (INSERT or UPDATE)
+        await pool.query(
+            `INSERT INTO video_ratings (user_id, video_id, rating, created_at)
+             VALUES (?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE rating = ?, created_at = NOW()`,
+            [userId, id, rating, rating]
+        );
+
+        // Update average rating on video
+        await pool.query(
+            `UPDATE videos SET rating = (
+                SELECT AVG(rating) FROM video_ratings WHERE video_id = ?
+            ) WHERE id = ?`,
+            [id, id]
+        );
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('rateVideo error:', error);
+        res.status(500).json({ error: 'Failed' });
     }
 };
