@@ -78,6 +78,25 @@ app.get('/', (req, res) => {
     res.send('Tirhuta Video Streaming Backend is Running!');
 });
 
+// ── Android App Links verification ────────────────────────────────────────────
+// Android verifies App Links by fetching this file from the SAME host that
+// appears in the intent-filter (tirhuta.com).  The SHA-256 fingerprint below
+// must match the certificate used to sign the release APK/AAB.
+// To find your fingerprint:  keytool -list -v -keystore your.jks
+// Then update ANDROID_SHA256_CERT in your .env file.
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    const sha256 = process.env.ANDROID_SHA256_CERT || 'REPLACE_WITH_YOUR_RELEASE_SHA256_FINGERPRINT';
+    res.setHeader('Content-Type', 'application/json');
+    res.json([{
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+            namespace: 'android_app',
+            package_name: 'com.tirhuta.videostreaming',
+            sha256_cert_fingerprints: [sha256],
+        },
+    }]);
+});
+
 // Routes
 app.use(['/api/auth', '/auth'], authRoutes);
 app.use(['/api/videos', '/videos'], videoRoutes);
