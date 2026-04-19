@@ -243,6 +243,10 @@ exports.uploadVideo = async (req, res) => {
             description,
             language = 'Hindi',
             content_rating = 'U',
+            series_id: rawSeriesId,
+            new_series_title,
+            season_number,
+            episode_number,
             is_active = true,
             is_featured = 'false',
             is_trending = 'false',
@@ -286,6 +290,17 @@ exports.uploadVideo = async (req, res) => {
         if (!creator_id) {
             console.error('Upload failed: No creator_id found');
             return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        // Resolve series_id — auto-create series if new_series_title provided
+        let series_id = rawSeriesId ? parseInt(rawSeriesId) : null;
+        if (!series_id && new_series_title) {
+            const [result] = await pool.query(
+                `INSERT INTO series (title, creator_id, category_id, is_active, created_at, updated_at)
+                 VALUES (?, ?, ?, 1, NOW(), NOW())`,
+                [new_series_title, creator_id, category_id || null]
+            );
+            series_id = result.insertId;
         }
 
         let video_url = req.body.video_url; // Allow URL if provided (legacy support)
@@ -380,7 +395,7 @@ exports.uploadVideo = async (req, res) => {
         // Insert with all required fields and proper defaults
         const [result] = await pool.query(
             `INSERT INTO videos (
-                title, description, video_url, thumbnail_url, 
+                title, description, video_url, thumbnail_url,
                 category_id, genre_id, creator_id, type, language, content_rating,
                 is_active, is_featured, is_trending,
                 duration, file_size, cast, crew,
@@ -389,8 +404,9 @@ exports.uploadVideo = async (req, res) => {
                 director, awards, subtitles, audio_languages, video_quality,
                 slug, seo_title, seo_description, seo_keywords,
                 og_image, og_title, og_description, canonical_url, structured_data,
+                series_id, season_number, episode_number,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
             [
                 title,
                 description || null,
@@ -430,7 +446,10 @@ exports.uploadVideo = async (req, res) => {
                 finalOgTitle,
                 finalOgDescription,
                 canonicalUrl,
-                JSON.stringify(structuredDataObj)
+                JSON.stringify(structuredDataObj),
+                series_id || null,
+                season_number ? parseInt(season_number) : null,
+                episode_number ? parseInt(episode_number) : null,
             ]
         );
 
@@ -932,6 +951,69 @@ exports.rateVideo = async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('rateVideo error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+exports.getUserVideoRating = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const [rows] = await pool.query(
+            'SELECT rating FROM video_ratings WHERE user_id = ? AND video_id = ?',
+            [userId, id]
+        );
+        res.json({ rating: rows.length > 0 ? rows[0].rating : 0 });
+    } catch (error) {
+        console.error('getUserVideoRating error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+exports.uploadSubtitle = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { language } = req.body;
+        if (!req.file || !language) {
+            return res.status(400).json({ error: 'subtitle file and language are required' });
+        }
+
+        const [rows] = await pool.query('SELECT subtitles FROM videos WHERE id = ?', [id]);
+        if (!rows.length) return res.status(404).json({ error: 'Video not found' });
+
+        let subtitles = [];
+        try { subtitles = JSON.parse(rows[0].subtitles || '[]'); } catch (_) {}
+
+        const newSub = {
+            id: Date.now(),
+            language,
+            url: req.file.location || req.file.path,
+            label: language,
+        };
+        subtitles.push(newSub);
+
+        await pool.query('UPDATE videos SET subtitles = ? WHERE id = ?', [JSON.stringify(subtitles), id]);
+        res.json({ success: true, subtitle: newSub });
+    } catch (error) {
+        console.error('uploadSubtitle error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
+exports.deleteSubtitle = async (req, res) => {
+    try {
+        const { id, subtitleId } = req.params;
+        const [rows] = await pool.query('SELECT subtitles FROM videos WHERE id = ?', [id]);
+        if (!rows.length) return res.status(404).json({ error: 'Video not found' });
+
+        let subtitles = [];
+        try { subtitles = JSON.parse(rows[0].subtitles || '[]'); } catch (_) {}
+
+        subtitles = subtitles.filter(s => String(s.id) !== String(subtitleId));
+        await pool.query('UPDATE videos SET subtitles = ? WHERE id = ?', [JSON.stringify(subtitles), id]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('deleteSubtitle error:', error);
         res.status(500).json({ error: 'Failed' });
     }
 };

@@ -30,8 +30,13 @@ router.post('/:id/like', protect, videoController.likeVideo);
 router.delete('/:id/like', protect, videoController.unlikeVideo);
 router.post('/:id/share', protect, videoController.shareVideo);
 router.post('/:id/rate', protect, videoController.rateVideo);
+router.get('/:id/my-rating', protect, videoController.getUserVideoRating);
 router.get('/:id/comments', videoController.getComments);
 router.post('/:id/comments', protect, videoController.addComment);
 router.delete('/comments/:commentId', protect, videoController.deleteComment);
+
+// Subtitle management
+router.post('/:id/subtitles', protect, upload.single('subtitle'), videoController.uploadSubtitle);
+router.delete('/:id/subtitles/:subtitleId', protect, videoController.deleteSubtitle);
 
 module.exports = router;

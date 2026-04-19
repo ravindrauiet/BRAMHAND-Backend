@@ -17,12 +17,13 @@ const fileFilter = (req, file, cb) => {
     const allowedMimeTypes = [
         'video/mp4', 'video/mkv', 'video/avi', 'video/quicktime',
         'image/jpeg', 'image/png', 'image/webp', 'image/jpg',
-        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/flac', 'audio/aac'
+        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/flac', 'audio/aac',
+        'text/vtt', 'text/plain', 'application/x-subrip',
     ];
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    if (allowedMimeTypes.includes(file.mimetype) || file.fieldname === 'subtitle') {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only videos, images, and audio files are allowed.'), false);
+        cb(new Error('Invalid file type. Only videos, images, audio, and subtitle files are allowed.'), false);
     }
 };
 
@@ -43,6 +44,8 @@ const upload = multer({
                 folder = 'audio';
             } else if (file.fieldname === 'profileImage') {
                 folder = 'profile-images';
+            } else if (file.fieldname === 'subtitle') {
+                folder = 'subtitles';
             }
             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
             const ext = path.extname(file.originalname);

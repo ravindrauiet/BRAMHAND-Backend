@@ -4,7 +4,7 @@ const pool = require('../config/db');
 // @route   GET /api/series
 const getAllSeries = async (req, res) => {
     try {
-        const { category_id, is_featured, is_active } = req.query;
+        const { category_id, is_featured, is_active, my } = req.query;
         let query = `
             SELECT s.*, c.name as categoryName, u.full_name as creatorName,
                    (SELECT COUNT(*) FROM videos WHERE series_id = s.id) as episodeCount,
@@ -15,6 +15,24 @@ const getAllSeries = async (req, res) => {
             WHERE 1=1
         `;
         const params = [];
+
+        // Return only this creator's series when ?my=true (requires auth token in header)
+        if (my === 'true') {
+            let creatorId = null;
+            try {
+                const jwt = require('jsonwebtoken');
+                const authHeader = req.headers.authorization;
+                if (authHeader) {
+                    const token = authHeader.split(' ')[1];
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                    creatorId = decoded.id;
+                }
+            } catch (_) {}
+            if (creatorId) {
+                query += ' AND s.creator_id = ?';
+                params.push(creatorId);
+            }
+        }
 
         if (category_id) {
             query += ' AND s.category_id = ?';
