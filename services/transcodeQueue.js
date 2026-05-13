@@ -2,12 +2,24 @@ const { Queue, Worker } = require('bullmq');
 const pool = require('../config/db');
 const { transcodeToHLS } = require('./hlsTranscodeService');
 
+const JOB_NAME = 'transcode';
+const QUEUE_NAME = 'hls-transcode';
+const DEFAULT_JOB_OPTIONS = {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 60000 },
+    removeOnComplete: 100,
+    removeOnFail: 50,
+};
+
+let transcodeDisabledReason = null;
+let shutdownPromise = null;
+
 /**
  * Build the ioredis-compatible connection options.
  * Supports three modes:
- *  1. REDIS_URL  — Upstash or any redis:// / rediss:// URL  (recommended)
- *  2. REDIS_HOST / REDIS_PORT / REDIS_PASSWORD — separate vars (self-hosted Redis)
- *  3. Fallback   — localhost:6379 (local dev)
+ *  1. REDIS_URL  - Upstash or any redis:// / rediss:// URL (recommended)
+ *  2. REDIS_HOST / REDIS_PORT / REDIS_PASSWORD - separate vars (self-hosted Redis)
+ *  3. Fallback - localhost:6379 (local dev)
  */
 function buildConnection() {
     if (process.env.REDIS_URL) {
@@ -16,9 +28,9 @@ function buildConnection() {
             host: u.hostname,
             port: parseInt(u.port || '6379', 10),
             password: u.password ? decodeURIComponent(u.password) : undefined,
-            // Upstash uses "rediss://" (double-s) = TLS required
+            // Upstash uses rediss:// so TLS is required.
             tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined,
-            // Required by BullMQ when using Upstash
+            // Required by BullMQ when using Upstash.
             enableReadyCheck: false,
             maxRetriesPerRequest: null,
         };
@@ -32,19 +44,41 @@ function buildConnection() {
     };
 }
 
+function isRedisQuotaExceededError(err) {
+    const message = (err && err.message) ? err.message : String(err || '');
+    return /max requests limit exceeded/i.test(message);
+}
+
+function disableTranscoding(reason, err) {
+    if (transcodeDisabledReason) {
+        return shutdownPromise || Promise.resolve();
+    }
+
+    transcodeDisabledReason = reason;
+    console.error(`[TranscodeQueue] Background HLS transcoding disabled: ${reason}`);
+    if (err && err.message) {
+        console.error('[TranscodeQueue] Root cause:', err.message);
+    }
+
+    shutdownPromise = Promise.allSettled([
+        worker.close(),
+        transcodeQueue.close(),
+    ]).catch(() => undefined);
+
+    return shutdownPromise;
+}
+
 const connection = buildConnection();
 
-// Shared queue — producers (uploadVideo) push jobs here
-const transcodeQueue = new Queue('hls-transcode', { connection });
+// Shared queue; producers push jobs here.
+const transcodeQueue = new Queue(QUEUE_NAME, { connection });
 
-// Worker processes one job at a time (concurrency:1) to avoid OOM on low-RAM servers.
-// For servers with 8+ CPUs you can raise concurrency and use Promise.all in
-// hlsTranscodeService for parallel variant encoding.
+// Worker processes one job at a time to avoid OOM on low-RAM servers.
 const worker = new Worker(
-    'hls-transcode',
+    QUEUE_NAME,
     async (job) => {
         const { videoId, s3Key } = job.data;
-        console.log(`[TranscodeWorker] Job ${job.id} — videoId=${videoId}, key=${s3Key}`);
+        console.log(`[TranscodeWorker] Job ${job.id} - videoId=${videoId}, key=${s3Key}`);
 
         await pool.query(
             'UPDATE videos SET transcode_status = ? WHERE id = ?',
@@ -66,7 +100,6 @@ const worker = new Worker(
                 'UPDATE videos SET transcode_status = ?, transcode_error = ?, updated_at = NOW() WHERE id = ?',
                 ['failed', errMsg, videoId]
             );
-            // Re-throw so BullMQ marks the job failed and applies retry backoff
             throw err;
         }
     },
@@ -85,7 +118,50 @@ worker.on('failed', (job, err) => {
 });
 
 worker.on('error', (err) => {
+    if (isRedisQuotaExceededError(err)) {
+        void disableTranscoding('Redis request quota exceeded.', err);
+        return;
+    }
+
+    if (transcodeDisabledReason) {
+        return;
+    }
+
     console.error('[TranscodeWorker] Worker error:', err.message);
 });
 
-module.exports = { transcodeQueue };
+async function enqueueTranscodeJob(videoId, s3Key, jobOptions = {}) {
+    if (transcodeDisabledReason) {
+        return { queued: false, reason: transcodeDisabledReason };
+    }
+
+    try {
+        const job = await transcodeQueue.add(
+            JOB_NAME,
+            { videoId, s3Key },
+            { ...DEFAULT_JOB_OPTIONS, ...jobOptions }
+        );
+
+        return { queued: true, jobId: job.id };
+    } catch (err) {
+        if (isRedisQuotaExceededError(err)) {
+            await disableTranscoding('Redis request quota exceeded.', err);
+            return { queued: false, reason: transcodeDisabledReason };
+        }
+
+        throw err;
+    }
+}
+
+function getTranscodeQueueState() {
+    return {
+        enabled: !transcodeDisabledReason,
+        reason: transcodeDisabledReason,
+    };
+}
+
+module.exports = {
+    transcodeQueue,
+    enqueueTranscodeJob,
+    getTranscodeQueueState,
+};

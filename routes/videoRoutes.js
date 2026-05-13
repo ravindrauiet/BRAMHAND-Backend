@@ -9,6 +9,7 @@ router.get('/', videoController.getVideos);
 router.get('/categories', videoController.getPublicCategories);
 router.get('/genres', videoController.getPublicGenres);
 router.get('/trending', videoController.getTrending);
+router.get('/home-sections', videoController.getHomeSections);
 
 // Content Management (Protected) - MUST BE BEFORE /:id
 router.get('/my-content', protect, videoController.getMyContent); // Get user's videos/reels
@@ -19,6 +20,7 @@ router.get('/series/:seriesId/episodes', videoController.getSeriesEpisodes);
 
 // Generic /:id routes AFTER specific routes
 router.get('/:id', videoController.getVideoById);
+router.get('/:id/recommendations', videoController.getRecommendations);
 router.patch('/:id', protect, videoController.updateVideoDetails); // Update video details
 router.delete('/:id', protect, videoController.deleteVideoByOwner); // Delete own video
 router.patch('/:id/status', protect, videoController.updateVideoStatus);

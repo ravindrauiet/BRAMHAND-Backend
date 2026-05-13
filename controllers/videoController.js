@@ -1,4 +1,34 @@
 const pool = require('../config/db');
+const jwt = require('jsonwebtoken');
+
+function getOptionalUserId(req) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            const token = req.headers.authorization.split(' ')[1];
+            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            return decoded.id;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    if (req.headers['x-user-id']) {
+        const fallbackId = parseInt(req.headers['x-user-id'], 10);
+        return Number.isNaN(fallbackId) ? null : fallbackId;
+    }
+
+    return null;
+}
+
+function safeJsonParse(value, fallback = []) {
+    if (!value) return fallback;
+    if (typeof value !== 'string') return value;
+    try {
+        return JSON.parse(value);
+    } catch (error) {
+        return fallback;
+    }
+}
 
 exports.getVideos = async (req, res) => {
     try {
@@ -17,17 +47,7 @@ exports.getVideos = async (req, res) => {
             excludeSeries: req.query.exclude_series
         });
 
-        let userId = null;
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            const jwt = require('jsonwebtoken');
-            try {
-                const token = req.headers.authorization.split(' ')[1];
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-                userId = decoded.id;
-            } catch (e) {
-                // Ignore invalid token
-            }
-        }
+        const userId = getOptionalUserId(req);
 
         const offset = (page - 1) * limit;
 
@@ -152,19 +172,7 @@ exports.getPublicGenres = async (req, res) => {
 exports.getVideoById = async (req, res) => {
     try {
         const { id } = req.params;
-        let userId = null;
-
-        // Check for auth token to get userId
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            const jwt = require('jsonwebtoken');
-            try {
-                const token = req.headers.authorization.split(' ')[1];
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-                userId = decoded.id;
-            } catch (e) {
-                // Ignore invalid token
-            }
-        }
+        const userId = getOptionalUserId(req);
 
         let query = `
             SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image 
@@ -219,12 +227,11 @@ exports.getVideoById = async (req, res) => {
         }
 
         // Parse JSON columns that MySQL2 may return as strings
-        if (video.subtitles && typeof video.subtitles === 'string') {
-            try { video.subtitles = JSON.parse(video.subtitles); } catch (_) { video.subtitles = []; }
-        }
-        if (video.audio_languages && typeof video.audio_languages === 'string') {
-            try { video.audio_languages = JSON.parse(video.audio_languages); } catch (_) { video.audio_languages = []; }
-        }
+        video.subtitles = safeJsonParse(video.subtitles, []);
+        video.audio_languages = safeJsonParse(video.audio_languages, []);
+        video.tags = safeJsonParse(video.tags, []);
+        video.cast = safeJsonParse(video.cast, []);
+        video.crew = safeJsonParse(video.crew, []);
 
         res.json({ video });
     } catch (error) {
@@ -467,19 +474,14 @@ exports.uploadVideo = async (req, res) => {
         // via video_url while the transcode job runs.
         if (req.files?.video?.[0] && video_url) {
             try {
-                const { transcodeQueue } = require('../services/transcodeQueue');
+                const { enqueueTranscodeJob } = require('../services/transcodeQueue');
                 const s3Key = new URL(video_url).pathname.replace(/^\//, '');
-                await transcodeQueue.add(
-                    'transcode',
-                    { videoId: result.insertId, s3Key },
-                    {
-                        attempts: 3,
-                        backoff: { type: 'exponential', delay: 60000 }, // 1 min, 2 min, 4 min
-                        removeOnComplete: 100,
-                        removeOnFail: 50,
-                    }
-                );
-                console.log(`[UploadVideo] Transcode job queued for videoId=${result.insertId}`);
+                const queueResult = await enqueueTranscodeJob(result.insertId, s3Key);
+                if (queueResult.queued) {
+                    console.log(`[UploadVideo] Transcode job queued for videoId=${result.insertId}`);
+                } else {
+                    console.warn(`[UploadVideo] Skipped transcode queue for videoId=${result.insertId}: ${queueResult.reason}`);
+                }
             } catch (queueErr) {
                 // Non-fatal — video is still accessible via video_url
                 console.error('[UploadVideo] Failed to enqueue transcode job:', queueErr.message);
@@ -517,24 +519,7 @@ exports.updateVideoStatus = async (req, res) => {
 exports.recordView = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.headers['x-user-id'];
-
-        let authenticatedUserId = null;
-        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-            const jwt = require('jsonwebtoken');
-            try {
-                const token = req.headers.authorization.split(' ')[1];
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-                authenticatedUserId = decoded.id;
-            } catch (e) {
-                console.error('recordView Auth Error:', e.message);
-            }
-        }
-
-        // Fallback for dev/dashboard which often passes x-user-id
-        if (!authenticatedUserId && req.headers['x-user-id']) {
-            authenticatedUserId = parseInt(req.headers['x-user-id']);
-        }
+        const authenticatedUserId = getOptionalUserId(req);
 
         // 1. Increment View Count
         await pool.query('UPDATE videos SET views_count = views_count + 1 WHERE id = ?', [id]);
@@ -856,10 +841,17 @@ exports.updateWatchProgress = async (req, res) => {
 
         // Update last_position in video_views
         // We look for the most recent view entry for this user and video
-        await pool.query(
+        const [result] = await pool.query(
             'UPDATE video_views SET last_position = ?, created_at = NOW() WHERE user_id = ? AND video_id = ? ORDER BY created_at DESC LIMIT 1',
             [position, userId, videoId]
         );
+
+        if (!result.affectedRows) {
+            await pool.query(
+                'INSERT INTO video_views (user_id, video_id, last_position, created_at) VALUES (?, ?, ?, NOW())',
+                [userId, videoId, position]
+            );
+        }
 
         res.json({ success: true });
     } catch (error) {
@@ -1015,5 +1007,204 @@ exports.deleteSubtitle = async (req, res) => {
     } catch (error) {
         console.error('deleteSubtitle error:', error);
         res.status(500).json({ error: 'Failed' });
+    }
+};
+
+// @desc    Home sections for OTT-style landing page
+// @route   GET /api/videos/home-sections
+// @access  Public with optional auth personalization
+exports.getHomeSections = async (req, res) => {
+    try {
+        const userId = getOptionalUserId(req);
+        let preferredLanguage = null;
+
+        if (userId) {
+            const [prefs] = await pool.query(
+                'SELECT content_language FROM user_preferences WHERE user_id = ? LIMIT 1',
+                [userId]
+            );
+            preferredLanguage = prefs[0]?.content_language || null;
+        }
+
+        const [heroRows, trendingRows, latestMovieRows, newThisWeekRows, reelRows, seriesRows, topInLanguageRows] = await Promise.all([
+            pool.query(`
+                SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                FROM videos v
+                LEFT JOIN users u ON v.creator_id = u.id
+                LEFT JOIN video_categories c ON v.category_id = c.id
+                WHERE v.is_active = TRUE
+                  AND v.type = 'VIDEO'
+                  AND (v.series_id IS NULL OR v.series_id = 0)
+                ORDER BY v.is_featured DESC, v.is_trending DESC, v.views_count DESC, v.created_at DESC
+                LIMIT 6
+            `),
+            pool.query(`
+                SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                FROM videos v
+                LEFT JOIN users u ON v.creator_id = u.id
+                LEFT JOIN video_categories c ON v.category_id = c.id
+                WHERE v.is_active = TRUE
+                  AND v.type = 'VIDEO'
+                  AND (v.series_id IS NULL OR v.series_id = 0)
+                ORDER BY v.is_trending DESC, v.views_count DESC, v.created_at DESC
+                LIMIT 12
+            `),
+            pool.query(`
+                SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                FROM videos v
+                LEFT JOIN users u ON v.creator_id = u.id
+                LEFT JOIN video_categories c ON v.category_id = c.id
+                WHERE v.is_active = TRUE
+                  AND v.type = 'VIDEO'
+                  AND (v.series_id IS NULL OR v.series_id = 0)
+                ORDER BY v.created_at DESC
+                LIMIT 12
+            `),
+            pool.query(`
+                SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                FROM videos v
+                LEFT JOIN users u ON v.creator_id = u.id
+                LEFT JOIN video_categories c ON v.category_id = c.id
+                WHERE v.is_active = TRUE
+                  AND v.type = 'VIDEO'
+                  AND (v.series_id IS NULL OR v.series_id = 0)
+                  AND v.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                ORDER BY v.views_count DESC, v.created_at DESC
+                LIMIT 12
+            `),
+            pool.query(`
+                SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                FROM videos v
+                LEFT JOIN users u ON v.creator_id = u.id
+                LEFT JOIN video_categories c ON v.category_id = c.id
+                WHERE v.is_active = TRUE
+                  AND v.type = 'REEL'
+                ORDER BY v.is_trending DESC, v.views_count DESC, v.created_at DESC
+                LIMIT 12
+            `),
+            pool.query(`
+                SELECT s.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name,
+                       COUNT(v.id) as episodeCount,
+                       COALESCE(SUM(v.views_count), 0) as views_count
+                FROM series s
+                LEFT JOIN users u ON s.creator_id = u.id
+                LEFT JOIN video_categories c ON s.category_id = c.id
+                LEFT JOIN videos v ON v.series_id = s.id AND v.is_active = TRUE
+                WHERE s.is_active = TRUE
+                GROUP BY s.id, u.full_name, u.profile_image, c.name
+                ORDER BY s.is_featured DESC, views_count DESC, s.created_at DESC
+                LIMIT 10
+            `),
+            preferredLanguage
+                ? pool.query(`
+                    SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                    FROM videos v
+                    LEFT JOIN users u ON v.creator_id = u.id
+                    LEFT JOIN video_categories c ON v.category_id = c.id
+                    WHERE v.is_active = TRUE
+                      AND v.type = 'VIDEO'
+                      AND (v.series_id IS NULL OR v.series_id = 0)
+                      AND v.language = ?
+                    ORDER BY v.views_count DESC, v.created_at DESC
+                    LIMIT 12
+                `, [preferredLanguage])
+                : Promise.resolve([[]]),
+        ]);
+
+        res.json({
+            hero: heroRows[0],
+            sections: [
+                { id: 'trending-now', title: 'Trending Now', items: trendingRows[0], type: 'MOVIE', viewAllLink: '/browse?cat=movies' },
+                { id: 'latest-movies', title: 'Latest Movies', items: latestMovieRows[0], type: 'MOVIE', viewAllLink: '/latest' },
+                { id: 'new-this-week', title: 'New This Week', items: newThisWeekRows[0], type: 'MOVIE', viewAllLink: '/browse?cat=movies' },
+                { id: 'binge-series', title: 'Binge-Worthy Series', items: seriesRows[0], type: 'SERIES', viewAllLink: '/browse?cat=series' },
+                { id: 'trending-shorts', title: 'Trending Shorts', items: reelRows[0], type: 'REEL', viewAllLink: '/browse?cat=reels' },
+                ...(preferredLanguage ? [{
+                    id: 'language-picks',
+                    title: `${preferredLanguage} Picks`,
+                    items: topInLanguageRows[0],
+                    type: 'MOVIE',
+                    viewAllLink: '/browse?cat=movies',
+                }] : []),
+            ],
+        });
+    } catch (error) {
+        console.error('getHomeSections error:', error);
+        res.status(500).json({ error: 'Failed to fetch home sections' });
+    }
+};
+
+// @desc    Related/recommended content for a video
+// @route   GET /api/videos/:id/recommendations
+// @access  Public
+exports.getRecommendations = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const limit = parseInt(req.query.limit, 10) || 12;
+
+        const [currentRows] = await pool.query(
+            'SELECT id, category_id, genre_id, creator_id, series_id FROM videos WHERE id = ? LIMIT 1',
+            [id]
+        );
+
+        if (!currentRows.length) {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+
+        const current = currentRows[0];
+
+        if (current.series_id) {
+            const [episodeRows] = await pool.query(`
+                SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name
+                FROM videos v
+                LEFT JOIN users u ON v.creator_id = u.id
+                LEFT JOIN video_categories c ON v.category_id = c.id
+                WHERE v.is_active = TRUE
+                  AND v.series_id = ?
+                  AND v.id <> ?
+                ORDER BY v.season_number ASC, v.episode_number ASC, v.created_at ASC
+                LIMIT ?
+            `, [current.series_id, id, limit]);
+
+            return res.json({ videos: episodeRows, reason: 'More episodes in this series' });
+        }
+
+        const [rows] = await pool.query(`
+            SELECT v.*, u.full_name as creator_name, u.profile_image as creator_image, c.name as category_name,
+                   (
+                     CASE WHEN v.category_id = ? THEN 4 ELSE 0 END +
+                     CASE WHEN ? IS NOT NULL AND v.genre_id = ? THEN 3 ELSE 0 END +
+                     CASE WHEN v.creator_id = ? THEN 2 ELSE 0 END +
+                     CASE WHEN v.is_trending = TRUE THEN 1 ELSE 0 END
+                   ) as recommendation_score
+            FROM videos v
+            LEFT JOIN users u ON v.creator_id = u.id
+            LEFT JOIN video_categories c ON v.category_id = c.id
+            WHERE v.is_active = TRUE
+              AND v.id <> ?
+              AND (
+                v.category_id = ?
+                OR (? IS NOT NULL AND v.genre_id = ?)
+                OR v.creator_id = ?
+              )
+            ORDER BY recommendation_score DESC, v.views_count DESC, v.created_at DESC
+            LIMIT ?
+        `, [
+            current.category_id,
+            current.genre_id,
+            current.genre_id,
+            current.creator_id,
+            id,
+            current.category_id,
+            current.genre_id,
+            current.genre_id,
+            current.creator_id,
+            limit,
+        ]);
+
+        res.json({ videos: rows, reason: 'Because you watched this title' });
+    } catch (error) {
+        console.error('getRecommendations error:', error);
+        res.status(500).json({ error: 'Failed to fetch recommendations' });
     }
 };

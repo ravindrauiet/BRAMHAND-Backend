@@ -12,6 +12,7 @@ router.put('/preferences', protect, userController.updatePreferences);
 router.put('/fcm-token', protect, userController.saveFcmToken); // Save FCM push notification token
 
 router.get('/history', protect, userController.getWatchHistory);
+router.get('/continue-watching', protect, userController.getContinueWatching);
 router.delete('/history/:viewId', protect, userController.removeFromWatchHistory);
 
 // Public creator profile

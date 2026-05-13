@@ -14,7 +14,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const pool = require('../config/db');
-const { transcodeQueue } = require('../services/transcodeQueue');
+const { enqueueTranscodeJob } = require('../services/transcodeQueue');
 
 async function main() {
     try {
@@ -46,16 +46,12 @@ async function main() {
                     continue;
                 }
 
-                await transcodeQueue.add(
-                    'transcode',
-                    { videoId: row.id, s3Key },
-                    {
-                        attempts: 3,
-                        backoff: { type: 'exponential', delay: 60000 },
-                        removeOnComplete: 100,
-                        removeOnFail: 50,
-                    }
-                );
+                const queueResult = await enqueueTranscodeJob(row.id, s3Key);
+                if (!queueResult.queued) {
+                    console.warn(`  Skip videoId=${row.id}: ${queueResult.reason}`);
+                    skipped++;
+                    continue;
+                }
 
                 console.log(`  Queued videoId=${row.id} (${s3Key})`);
                 queued++;

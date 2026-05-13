@@ -152,6 +152,31 @@ exports.getWatchHistory = async (req, res) => {
     }
 };
 
+exports.getContinueWatching = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const limit = parseInt(req.query.limit, 10) || 12;
+
+        const [items] = await pool.query(`
+            SELECT vv.id as view_id, vv.created_at as viewed_at, COALESCE(vv.last_position, 0) as last_position,
+                   v.*, u.full_name as creator_name, u.profile_image as creator_image
+            FROM video_views vv
+            JOIN videos v ON vv.video_id = v.id
+            JOIN users u ON v.creator_id = u.id
+            WHERE vv.user_id = ?
+              AND v.is_active = TRUE
+              AND COALESCE(vv.last_position, 0) > 0
+            ORDER BY vv.created_at DESC
+            LIMIT ?
+        `, [userId, limit]);
+
+        res.json({ items });
+    } catch (error) {
+        console.error('getContinueWatching error:', error);
+        res.status(500).json({ error: 'Failed' });
+    }
+};
+
 exports.removeFromWatchHistory = async (req, res) => {
     try {
         const userId = req.user.id;
